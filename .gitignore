@@ -2,4 +2,5 @@
 *.pyc
 __pycache__
 .idea
-data/*
+data/anonymized_dataset.csv
+data/anonymized_dataset_preprocessed.csv
