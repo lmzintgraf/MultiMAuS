@@ -1,5 +1,4 @@
 import pandas
-import numpy as np
 from currency_converter import CurrencyConverter
 from datetime import datetime
 from pytz import timezone, country_timezones
@@ -7,7 +6,6 @@ from sklearn import preprocessing
 
 # read in dataset
 dataset = pandas.read_csv('./anonymized_dataset.csv')
-# dataset = dataset[:100000]
 print(dataset.head())
 
 # throw away the first column and the transaction ID
@@ -36,11 +34,11 @@ dataset["date"] = dataset["date"].apply(lambda date: date.replace(tzinfo=timezon
 # convert dates into local times (not that if it's ambiguous like Australia I just take the first entry
 dataset["date"] = dataset.apply(lambda d: d["date"].astimezone(timezone(country_timezones(d["GeoCode"])[0])), axis=1)
 
-# convert currencies into EUR
+# convert currencies into EUR (using the conversion rate from the date of purchase)
 c = CurrencyConverter(fallback_on_missing_rate=True)
-dataset["Amount"] = dataset.apply(lambda d: c.convert(d["Amount"], 'EUR', d["Currency"], d["date"]), axis=1)
+dataset["Amount"] = dataset.apply(lambda d: c.convert(d["Amount"], d["Currency"], 'EUR', d["date"]), axis=1)
 # del dataset["Currency"]
 
 print(dataset.head())
 
-dataset.to_csv('./anonymized_dataset_preprocessed.csv')
+dataset.to_csv('./anonymized_dataset_preprocessed.csv', index_label=False)
