@@ -40,4 +40,4 @@ Country
     Card issuer country
 
 GeoCode
-    Purchase country; some (ca. 5000) values are missing (replacing with Country)
+    Purchase country; some (thousand) values are missing (replacing with Country);
