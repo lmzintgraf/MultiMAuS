@@ -4,3 +4,5 @@ __pycache__
 .idea
 data/anonymized_dataset.csv
 data/anonymized_dataset_preprocessed.csv
+data/merchStats*
+data/custStats*

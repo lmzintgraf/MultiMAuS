@@ -12,31 +12,37 @@ print(dataset.head())
 del dataset["Unnamed: 0"]
 del dataset["id"]
 
+dataset = dataset.rename(columns={'Merchant': 'MerchantID', 'Card': 'CardID', 'date': 'Date',
+                        'target': 'Target', 'First Name': 'FirstName', 'Last Name': 'LastName',
+                        'Country': 'CardCountry', 'GeoCode': 'PurchaseCountry'})
+
+print(dataset.columns)
+
 # convert AccountID, Merchant, Card, FirstName, LastName, Email into integers
 le = preprocessing.LabelEncoder()
 dataset["AccountID"] = le.fit_transform(dataset["AccountID"])
-dataset["Merchant"] = le.fit_transform(dataset["Merchant"])
-dataset["Card"] = le.fit_transform(dataset["Card"])
-dataset["First Name"] = le.fit_transform(dataset["First Name"])
-dataset["Last Name"] = le.fit_transform(dataset["Last Name"])
+dataset["MerchantID"] = le.fit_transform(dataset["MerchantID"])
+dataset["CardID"] = le.fit_transform(dataset["CardID"])
+dataset["FirstName"] = le.fit_transform(dataset["FirstName"])
+dataset["LastName"] = le.fit_transform(dataset["LastName"])
 dataset["Email"] = le.fit_transform(dataset["Email"])
 
-# where the GeoCode is unknown, just use the Country
-dataset.loc[dataset["GeoCode"] == "--", "GeoCode"] = dataset.loc[dataset["GeoCode"] == "--", "Country"]
-dataset.loc[dataset["GeoCode"].isnull(), "GeoCode"] = dataset.loc[dataset["GeoCode"].isnull(), "Country"]
+# where the GeoCode is unknown, use the Country
+dataset.loc[dataset["PurchaseCountry"] == "--", "PurchaseCountry"] = dataset.loc[dataset["PurchaseCountry"] == "--", "CardCountry"]
+dataset.loc[dataset["PurchaseCountry"].isnull(), "PurchaseCountry"] = dataset.loc[dataset["PurchaseCountry"].isnull(), "CardCountry"]
 
 # convert dates into datetime format
-dataset["date"] = dataset["date"].apply(lambda date: datetime.strptime(date, '%Y-%m-%d %H:%M:%S'))
+dataset["Date"] = dataset["Date"].apply(lambda date: datetime.strptime(date, '%Y-%m-%d %H:%M:%S'))
 
 # add timezone info (Pacific Standard Time)
-dataset["date"] = dataset["date"].apply(lambda date: date.replace(tzinfo=timezone('US/Pacific')))
+dataset["Date"] = dataset["Date"].apply(lambda date: date.replace(tzinfo=timezone('US/Pacific')))
 
 # convert dates into local times (not that if it's ambiguous like Australia I just take the first entry
-dataset["date"] = dataset.apply(lambda d: d["date"].astimezone(timezone(country_timezones(d["GeoCode"])[0])), axis=1)
+dataset["Date"] = dataset.apply(lambda d: d["Date"].astimezone(timezone(country_timezones(d["PurchaseCountry"])[0])), axis=1)
 
 # convert currencies into EUR (using the conversion rate from the date of purchase)
 c = CurrencyConverter(fallback_on_missing_rate=True)
-dataset["Amount"] = dataset.apply(lambda d: c.convert(d["Amount"], d["Currency"], 'EUR', d["date"]), axis=1)
+dataset["Amount"] = dataset.apply(lambda d: round(c.convert(d["Amount"], d["Currency"], 'EUR', d["Date"]), 2), axis=1)
 # del dataset["Currency"]
 
 print(dataset.head())
