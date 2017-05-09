@@ -8,9 +8,10 @@ from sklearn import preprocessing
 dataset = pandas.read_csv('./anonymized_dataset.csv')
 print(dataset.head())
 
-# throw away the first column and the transaction ID
+# throw away the columns I won't use
 del dataset["Unnamed: 0"]
 del dataset["id"]
+del dataset["AccountID"]
 
 dataset = dataset.rename(columns={'Merchant': 'MerchantID', 'Card': 'CardID', 'date': 'Date',
                         'target': 'Target', 'First Name': 'FirstName', 'Last Name': 'LastName',
@@ -18,9 +19,8 @@ dataset = dataset.rename(columns={'Merchant': 'MerchantID', 'Card': 'CardID', 'd
 
 print(dataset.columns)
 
-# convert AccountID, Merchant, Card, FirstName, LastName, Email into integers
+# convert Merchant, Card, FirstName, LastName, Email into integers
 le = preprocessing.LabelEncoder()
-dataset["AccountID"] = le.fit_transform(dataset["AccountID"])
 dataset["MerchantID"] = le.fit_transform(dataset["MerchantID"])
 dataset["CardID"] = le.fit_transform(dataset["CardID"])
 dataset["FirstName"] = le.fit_transform(dataset["FirstName"])
