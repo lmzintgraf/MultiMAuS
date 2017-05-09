@@ -11,16 +11,16 @@ Conclusions:
         in our simulator; we simply call this "country". (Note: I also checked that this
         is true when we don't replace "purchase country" with "card country" when values
         are missing. The results were:
-            % (card != purchase country) - (all) 0.1045
-            % (card != purchase country) - (genuine) 0.1050
-            % (card != purchase country) - (fraud) 0.0360
+            (card != purchase country) - (all) 10.45 %
+            (card != purchase country) - (genuine) 10.50 %
+            (card != purchase country) - (fraud) 3.60 %
         As we can see, only 3% if fraudulentb transactions are made in countries which
         are not also the credit card country, and 10% for genuine transactoins. We believe
         that this is sufficiently small to be neglected. The results for data where we
         replace misisng values are:
-            % (card != purchase country) - (all) : 0.0736
-            % (card != purchase country) - (genuine) : 0.0740
-            % (card != purchase country) - (fraud) : 0.0231
+            (card != purchase country) - (all) : 7.36 %
+            (card != purchase country) - (genuine) : 7.40 %
+            (card != purchase country) - (fraud) : 2.31 %
 """
 import pandas
 import numpy as np
@@ -57,23 +57,16 @@ print("amount range (in Euro): ", min(dataset01["Amount"]), " - ", max(dataset01
 
 print("")
 
-print("% (card != purchase country) - (all): ", np.sum(dataset01["CardCountry"] != dataset01["PurchaseCountry"])/dataset01.shape[0])
-print("% (card != purchase country) - (genuine): ", np.sum(dataset0["CardCountry"] != dataset0["PurchaseCountry"])/dataset0.shape[0])
-print("% (card != purchase country) - (fraud): ", np.sum(dataset1["CardCountry"] != dataset1["PurchaseCountry"])/dataset1.shape[0])
+print("(card != purchase country) - (all): ", 100*round(np.sum(dataset01["CardCountry"] != dataset01["PurchaseCountry"])/dataset01.shape[0], 4), '%')
+print("(card != purchase country) - (genuine): ", 100*round(np.sum(dataset0["CardCountry"] != dataset0["PurchaseCountry"])/dataset0.shape[0], 4), '%')
+print("(card != purchase country) - (fraud): ", 100*round(np.sum(dataset1["CardCountry"] != dataset1["PurchaseCountry"])/dataset1.shape[0], 4), '%')
 
 print("")
 
-# ----------------------------
-# --- save aggregated data ---
-# ----------------------------
-
 # make a new pandas dataframe for the statistics
-data_stats = pandas.DataFrame(columns=['ALL', 'NON-FRAUD', 'FRAUD'],
-                              index=['transactions', 'accounts', 'merchants', 'cards', 'first names', 'last names',
-                                     'emails', 'card countries', 'purchase countries', 'min amount', 'max amount'])
+data_stats = pandas.DataFrame(columns=['ALL', 'NON-FRAUD', 'FRAUD'])
 
 data_stats.loc['transactions'] = [d.shape[0] for d in datasets]
-data_stats.loc['accounts'] = [len(d["AccountID"].unique()) for d in datasets]
 data_stats.loc['merchants'] = [len(d["MerchantID"].unique()) for d in datasets]
 data_stats.loc['cards'] = [len(d["CardID"].unique()) for d in datasets]
 data_stats.loc['first names'] = [len(d["FirstName"].unique()) for d in datasets]
@@ -83,29 +76,33 @@ data_stats.loc['card countries'] = [len(d["CardCountry"].unique()) for d in data
 data_stats.loc['purchase countries'] = [len(d["PurchaseCountry"].unique()) for d in datasets]
 data_stats.loc['min amount'] = [min(d["Amount"]) for d in datasets]
 data_stats.loc['max amount'] = [max(d["Amount"]) for d in datasets]
+data_stats.loc['avg amount'] = [np.average(d["Amount"]) for d in datasets]
+data_stats.loc['min trans per card'] = [min(d["CardID"].value_counts()) for d in datasets]
+data_stats.loc['max trans per card'] = [max(d["CardID"].value_counts()) for d in datasets]
+data_stats.loc['avg trans per card'] = [np.average(d["CardID"].value_counts()) for d in datasets]
 
 print(data_stats)
 
 print("")
 
-for d in datasets:
-
-    agent_ids = d['AccountID'].unique()
-    agent_stats = pandas.DataFrame(columns=range(len(agent_ids)))
-
-    agent_stats.loc['genuine transactions'] = [sum(d.loc[d["AccountID"] == c, "Target"] == 0) for c in agent_ids]
-    agent_stats.loc['fraudulent transactions'] = [sum(d.loc[d["AccountID"] == c, "Target"] == 1) for c in agent_ids]
-    agent_stats.loc['merchants'] = [len(d.loc[d["AccountID"] == c, "MerchantID"].unique()) for c in agent_ids]
-    agent_stats.loc['credit cards'] = [len(d.loc[d["AccountID"] == c, "CardID"].unique()) for c in agent_ids]
-    agent_stats.loc['first names'] = [len(d.loc[d["AccountID"] == c, "FirstName"].unique()) for c in agent_ids]
-    agent_stats.loc['last names'] = [len(d.loc[d["AccountID"] == c, "LastName"].unique()) for c in agent_ids]
-    agent_stats.loc['emails'] = [len(d.loc[d["AccountID"] == c, "Email"].unique()) for c in agent_ids]
-    agent_stats.loc['card countries'] = [len(d.loc[d["AccountID"] == c, "CardCountry"].unique()) for c in agent_ids]
-    agent_stats.loc['purchase countries'] = [len(d.loc[d["AccountID"] == c, "CardCountry"].unique()) for c in agent_ids]
-    agent_stats.loc['min amount'] = [min(d.loc[d["AccountID"] == c, "Amount"]) for c in agent_ids]
-    agent_stats.loc['max amount'] = [max(d.loc[d["AccountID"] == c, "Amount"]) for c in agent_ids]
-
-    agent_stats.to_csv('./custStats_{}.csv'.format(d.name), index_label=False)
+# for d in datasets:
+#
+#     agent_ids = d['CardID'].unique()
+#     agent_stats = pandas.DataFrame(columns=range(len(agent_ids)))
+#
+#     agent_stats.loc['genuine transactions'] = [sum(d.loc[d["CardID"] == c, "Target"] == 0) for c in agent_ids]
+#     agent_stats.loc['fraudulent transactions'] = [sum(d.loc[d["CardID"] == c, "Target"] == 1) for c in agent_ids]
+#     agent_stats.loc['merchants'] = [len(d.loc[d["CardID"] == c, "MerchantID"].unique()) for c in agent_ids]
+#     agent_stats.loc['credit cards'] = [len(d.loc[d["CardID"] == c, "CardID"].unique()) for c in agent_ids]
+#     agent_stats.loc['first names'] = [len(d.loc[d["CardID"] == c, "FirstName"].unique()) for c in agent_ids]
+#     agent_stats.loc['last names'] = [len(d.loc[d["CardID"] == c, "LastName"].unique()) for c in agent_ids]
+#     agent_stats.loc['emails'] = [len(d.loc[d["CardID"] == c, "Email"].unique()) for c in agent_ids]
+#     agent_stats.loc['card countries'] = [len(d.loc[d["CardID"] == c, "CardCountry"].unique()) for c in agent_ids]
+#     agent_stats.loc['purchase countries'] = [len(d.loc[d["CardID"] == c, "CardCountry"].unique()) for c in agent_ids]
+#     agent_stats.loc['min amount'] = [min(d.loc[d["CardID"] == c, "Amount"]) for c in agent_ids]
+#     agent_stats.loc['max amount'] = [max(d.loc[d["CardID"] == c, "Amount"]) for c in agent_ids]
+#
+#     agent_stats.to_csv('./custStats_{}.csv'.format(d.name), index_label=False)
 
 for d in datasets:
 
@@ -114,7 +111,6 @@ for d in datasets:
 
     agent_stats.loc['genuine transactions'] = [sum(d.loc[d["MerchantID"] == c, "Target"] == 0) for c in agent_ids]
     agent_stats.loc['fraudulent transactions'] = [sum(d.loc[d["MerchantID"] == c, "Target"] == 1) for c in agent_ids]
-    agent_stats.loc['customers'] = [len(d.loc[d["MerchantID"] == c, "AccountID"].unique()) for c in agent_ids]
     agent_stats.loc['credit cards'] = [len(d.loc[d["MerchantID"] == c, "CardID"].unique()) for c in agent_ids]
     agent_stats.loc['first names'] = [len(d.loc[d["MerchantID"] == c, "FirstName"].unique()) for c in agent_ids]
     agent_stats.loc['last names'] = [len(d.loc[d["MerchantID"] == c, "LastName"].unique()) for c in agent_ids]
