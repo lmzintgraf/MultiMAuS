@@ -17,29 +17,17 @@ other steps (primarily, I suspect, due to using Python 3.6 instead of 3.3).
 - Maven 3 or higher
 - Microsoft Visual Studio 2015 (I believe this is necessary from Python 3.5 onwards. For lower versions, Microsoft Visual 
 Studio 2010 may be necessary instead)
-- [Microsoft Windows SDK 7.1](https://www.microsoft.com/en-us/download/details.aspx?id=8279) or higher. Not sure actually
-if this is really still necessary for Python >= 3.5, VS2015... but it is there in the official instructions.
 
 ## Instructions
 ---
 
 1. Git Clone (or simply download) the [jpy project](https://github.com/bcdev/jpy).
 2. Launch the Developer Command Prompt for VS2015 (think this is installed with VS2015 by default, but may be optional, not sure)
-3. Navigate to <Microsoft Windows SDK 7.1 install directory>\Bin. By default, I believe <Microsoft Windows SDK 7.1 install 
-directory> should be something like "C:\Program Files\Microsoft SDKs\Windows\v7.1".
-4. Execute:
-	> setenv /x64 /release
-	
-This is assuming we're on a 64-bit platform, and our installed JDK and Python versions are also 64-bit. If any of these are
-not 64-bit, use /x86 instead of /x64. This is the step for which we needed to install that Microsoft Windows SDK 7.1. Just
-because I don't know of another way to get access to that setenv command. I do suspect there should be an easier way to get it,
-or simply do whatever it does... but this works for sure.
-
-5. Navigate to <VS 2015 installation directory>\VC. By default, I believe <VS 2015 installation directory> should be something 
+3. Navigate to <VS 2015 installation directory>\VC. By default, I believe <VS 2015 installation directory> should be something 
 like "C:\Program Files\Microsoft Visual Studio 14.0\VC". In my case, due to changing the installation directory, it was
 "D:\Apps\Microsoft Visual Studio 14.0". Note the "14.0" for VS2015, that is not a mistake.
-6. Execute:
-	> vcvarsall.bat
+4. Execute:
+	> vcvarsall.bat x64
 	
 This step (and step 5) may actually not be necessary, but shouldn't hurt either. In my case it was necessary because I had
 previously been messing around with VS2010 according to official installation instructions (based on older Python versions).
@@ -74,3 +62,41 @@ In addition to just building the files, it will also install the list of files m
 <Python install directory\Lib\site-packages>, and install the .jar files and pom.xml into your local repository (so that a
 different maven project with jpy as dependency will be able to find them). This seems useful to me, but did not find it anywhere
 in the official instructions.
+
+## Including Source and Javadoc in jpy Maven Package
+---
+
+Following the instructions above causes Maven to only build a .jar of the .class files for the Java part of the framework.
+This is technically sufficient for using the framework, but annoying due to being unable to view the source code or view
+Javadoc documentation within an IDE such as Eclipse. This can be fixed by editing the pom.xml file included in jpy prior
+to running the "python setup.py --maven build install" command.
+
+First, to include source files, within the <build><plugins></plugins></build> tags, add:
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>attach-sources</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			
+Next, to include javadoc, within the already existing <build><plugins><plugin></plugin></plugins></build> tags for 
+maven-javadoc-plugin, add:
+
+				<executions>
+					<execution>
+						<id>attach-javadocs</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+				
+It may also be necessary to add <groupId>org.apache.maven.plugins</groupId> right above the artifactId, not sure on this. Now,
+after letting maven build and install, projects with jpy as maven dependency should be able to find javadoc and source code.
