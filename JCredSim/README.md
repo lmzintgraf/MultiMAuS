@@ -33,8 +33,8 @@ This step (and step 5) may actually not be necessary, but shouldn't hurt either.
 previously been messing around with VS2010 according to official installation instructions (based on older Python versions).
 This step makes sure the compiler of VS2015 will be used, instead of the one of VS2010 (or any other).
 
-7. Navigate to where you downloaded or cloned the jpy project in step 1.
-8. Execute:
+5. Navigate to where you downloaded or cloned the jpy project in step 1.
+6. Execute:
 	> SET DISTUTILS_USE_SDK=1
 	
 	> SET JDK_HOME=<path to JDK installation directory, which should, for example, contain an "include" directory>
@@ -43,7 +43,7 @@ This step makes sure the compiler of VS2015 will be used, instead of the one of 
 	
 	> SET PATH=%JDK_HOME%\jre\bin\server;%PATH%
 	
-9. Execute:
+7. Execute:
 	> python setup.py --maven build
 	
 Assuming that the PATH is set up in such a way that it can find python (and possibly also maven, not sure), this should start
