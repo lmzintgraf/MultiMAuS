@@ -67,6 +67,7 @@ for the bridge. This process should create the following files for us (in additi
             jpy.so (Unixes only) jdl.so (Unixes only) jpy.pyd (Windows only) jdl.pyd (Windows only) jpyutil.py jpyconfig.py jpyconfig.properties	
 			
 It will also run some tests. It may also actually be useful to, instead, run:
+
 	> python setup.py --maven build install
 	
 In addition to just building the files, it will also install the list of files mentioned above into 
