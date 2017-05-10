@@ -34,6 +34,7 @@ This is assuming we're on a 64-bit platform, and our installed JDK and Python ve
 not 64-bit, use /x86 instead of /x64. This is the step for which we needed to install that Microsoft Windows SDK 7.1. Just
 because I don't know of another way to get access to that setenv command. I do suspect there should be an easier way to get it,
 or simply do whatever it does... but this works for sure.
+
 5. Navigate to <VS 2015 installation directory>\VC. By default, I believe <VS 2015 installation directory> should be something 
 like "C:\Program Files\Microsoft Visual Studio 14.0\VC". In my case, due to changing the installation directory, it was
 "D:\Apps\Microsoft Visual Studio 14.0". Note the "14.0" for VS2015, that is not a mistake.
@@ -43,6 +44,7 @@ like "C:\Program Files\Microsoft Visual Studio 14.0\VC". In my case, due to chan
 This step (and step 5) may actually not be necessary, but shouldn't hurt either. In my case it was necessary because I had
 previously been messing around with VS2010 according to official installation instructions (based on older Python versions).
 This step makes sure the compiler of VS2015 will be used, instead of the one of VS2010 (or any other).
+
 7. Navigate to where you downloaded or cloned the jpy project in step 1.
 8. Execute:
 	> SET DISTUTILS_USE_SDK=1
