@@ -82,4 +82,4 @@ del dataset["PurchaseCountry"]
 
 print(dataset.head())
 
-dataset.to_csv('./anonymized_dataset_preprocessed.csv', index_label=False)
+dataset.to_csv('./anonymized_dataset_preprocessed_2016.csv', index_label=False)
