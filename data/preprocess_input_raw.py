@@ -80,6 +80,9 @@ print("")
 # country are mostly overlapping, and the purchase country data is incomplete
 del dataset["PurchaseCountry"]
 
+# bring columns into convenient order
+dataset = dataset[['Date', 'CardID', 'MerchantID', 'Amount', 'Currency', 'Country', 'Target']]
+
 print(dataset.head())
 
 dataset.to_csv(utils_data.get_path_input_preprocessed(), index_label=False)
