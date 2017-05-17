@@ -4,13 +4,34 @@ import matplotlib.pyplot as plt
 from os.path import join
 
 FOLDER_INPUT_RAW = './input_raw/'
+FOLDER_INPUT_AGG = './input_agg/'
+FOLDER_OUTPUT_RAW = './output_raw/'
+FOLDER_OUTPUT_AGG = './input_raw'
+
+FILE_INPUT_RAW = join(FOLDER_INPUT_RAW, 'anonymized_dataset.csv')
 FILE_INPUT_PREPROCESSED = join(FOLDER_INPUT_RAW, 'dataset_preprocessed.csv')
+
+
+def get_folder_input_raw():
+    return FOLDER_INPUT_RAW
+
+
+def get_folder_input_agg():
+    return FOLDER_INPUT_AGG
+
+
+def get_path_input_raw():
+    return FILE_INPUT_RAW
+
+
+def get_path_input_preprocessed():
+    return FILE_INPUT_PREPROCESSED
 
 
 def get_dataset():
 
     # read in dataset
-    dataset01 = pandas.read_csv('./input_agg/anonymized_dataset_preprocessed.csv')
+    dataset01 = pandas.read_csv(get_path_input_preprocessed())
     # make the "date" column actually dates
     dataset01["Date"] = pandas.to_datetime(dataset01["Date"])
 
@@ -30,9 +51,9 @@ def get_transaction_prob(col_name, d01=get_dataset()[0], d0=get_dataset()[1], d1
     """ calculate fractions of transactions for given column """
     # generate
     num_trans = pandas.DataFrame(0, index=d01[col_name].value_counts().index, columns=data_stats_cols)
-    num_trans['ALL'] = d01[col_name].value_counts()
-    num_trans['NON-FRAUD'] = d0[col_name].value_counts()
-    num_trans['FRAUD'] = d1[col_name].value_counts()
+    num_trans['all'] = d01[col_name].value_counts()
+    num_trans['non-fraud'] = d0[col_name].value_counts()
+    num_trans['fraud'] = d1[col_name].value_counts()
     num_trans = num_trans.fillna(0)
     num_trans /= np.sum(num_trans, axis=0)
 
@@ -49,9 +70,9 @@ def get_transaction_dist(col_name):
     """ calculate fractions of transactions for given column """
     possible_vals = get_dataset()[0][col_name].value_counts().unique()
     trans_count = pandas.DataFrame(0, index=possible_vals, columns=data_stats_cols)
-    trans_count['ALL'] = get_dataset()[0][col_name].value_counts().value_counts()
-    trans_count['NON-FRAUD'] = get_dataset()[1][col_name].value_counts().value_counts()
-    trans_count['FRAUD'] = get_dataset()[1][col_name].value_counts().value_counts()
+    trans_count['all'] = get_dataset()[0][col_name].value_counts().value_counts()
+    trans_count['non-fraud'] = get_dataset()[1][col_name].value_counts().value_counts()
+    trans_count['fraud'] = get_dataset()[1][col_name].value_counts().value_counts()
     trans_count = trans_count.fillna(0)
     trans_count /= np.sum(trans_count.values, axis=0)
 
