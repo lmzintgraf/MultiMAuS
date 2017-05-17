@@ -2,5 +2,5 @@
 *.pyc
 __pycache__
 .idea
-./data/input\_raw/*
-./data/input\_agg/*
+data/input_raw
+data/input_agg
