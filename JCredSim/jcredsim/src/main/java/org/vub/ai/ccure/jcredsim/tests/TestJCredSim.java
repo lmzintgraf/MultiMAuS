@@ -26,7 +26,7 @@ public class TestJCredSim {
 		PyLib.startPython(credsimPythonAbsoluteFilepath);
 		
 		PyModule simulatorModule = PyModule.importModule("simulator");
-		simulatorModule.call("run_single()");
+		simulatorModule.callMethod("run_single");
 		
 		PyLib.stopPython();
 	}
