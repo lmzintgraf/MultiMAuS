@@ -29,8 +29,9 @@ def get_path_input_preprocessed():
 
 
 def get_dataset():
+    """ Returns the dataset (full), and subsets for non-fraud and fraud only """
 
-    # read in dataset
+    # get dataset from file
     dataset01 = pandas.read_csv(get_path_input_preprocessed())
     # make the "date" column actually dates
     dataset01["Date"] = pandas.to_datetime(dataset01["Date"])
@@ -49,14 +50,12 @@ def get_dataset():
 
 def get_transaction_prob(col_name, d01=get_dataset()[0], d0=get_dataset()[1], d1=get_dataset()[2]):
     """ calculate fractions of transactions for given column """
-    # generate
-    num_trans = pandas.DataFrame(0, index=d01[col_name].value_counts().index, columns=data_stats_cols)
+    num_trans = pandas.DataFrame(0, index=d01[col_name].value_counts().index, columns=['all', 'non-fraud', 'fraud'])
     num_trans['all'] = d01[col_name].value_counts()
     num_trans['non-fraud'] = d0[col_name].value_counts()
     num_trans['fraud'] = d1[col_name].value_counts()
     num_trans = num_trans.fillna(0)
     num_trans /= np.sum(num_trans, axis=0)
-
     return num_trans
 
 
@@ -69,7 +68,7 @@ def get_grouped_prob(group_by, col_name):
 def get_transaction_dist(col_name):
     """ calculate fractions of transactions for given column """
     possible_vals = get_dataset()[0][col_name].value_counts().unique()
-    trans_count = pandas.DataFrame(0, index=possible_vals, columns=data_stats_cols)
+    trans_count = pandas.DataFrame(0, index=possible_vals, columns=['all', 'non-fraud', 'fraud'])
     trans_count['all'] = get_dataset()[0][col_name].value_counts().value_counts()
     trans_count['non-fraud'] = get_dataset()[1][col_name].value_counts().value_counts()
     trans_count['fraud'] = get_dataset()[1][col_name].value_counts().value_counts()
@@ -77,7 +76,7 @@ def get_transaction_dist(col_name):
     trans_count /= np.sum(trans_count.values, axis=0)
 
     # save
-    trans_count.to_csv('./input_agg/aggregated/{}_fract-dist.csv'.format(col_name), index_label=False)
+    trans_count.to_csv(join(get_folder_input_agg(), 'fract-dist.csv'.format(col_name)), index_label=False)
 
     # print
     print(col_name)
@@ -96,7 +95,7 @@ def plot_hist_num_transactions(trans_frac, col_name):
         plt.ylabel('num transactions')
         if i == 2:
             plt.xlabel(col_name)
-    plt.savefig('./aggregated/{}_num-trans_hist'.format(col_name))
+    plt.savefig(join(get_folder_input_agg(), '{}_num-trans_hist'.format(col_name)))
     plt.close()
 
 
@@ -113,5 +112,5 @@ def plot_bar_trans_prob(trans_frac, col_name, file_name=None):
     plt.legend()
     if not file_name:
         file_name = col_name
-    plt.savefig('./aggregated/{}_num-trans_bar'.format(file_name))
+    plt.savefig(join(get_folder_input_agg(), '{}_num-trans_bar'.format(file_name)))
     plt.close()
