@@ -1,4 +1,5 @@
 import numpy as np
+from datetime import timedelta
 
 from mesa import Model
 from mesa.time import RandomActivation
@@ -18,25 +19,32 @@ class TransactionModel(Model):
     def __init__(self, model_parameters):
         super().__init__()
 
+        # load parameters
+        self.parameters = model_parameters
+
+        # set current datetime and termination status
+        self.curr_datetime = self.parameters['start date']
+        self.terminated = False
+
         # random state to reproduce results
-        self.random_state = np.random.RandomState(model_parameters["seed"])
+        self.random_state = np.random.RandomState(self.parameters["seed"])
 
         # random activation scheme for the customers
-        self.schedule = RandomActivation(self, seed=model_parameters["seed"])
+        self.schedule = RandomActivation(self, seed=self.parameters["seed"])
 
         # create the payment processing platform via which all transactions go
-        self.authenticator = Authenticator(self, self.random_state, model_parameters["max authentication steps"])
+        self.authenticator = Authenticator(self, self.random_state, self.parameters["max authentication steps"])
 
         # create merchants
-        self.merchants = [Merchant(i, self) for i in range(model_parameters["num merchants"])]
+        self.merchants = [Merchant(i, self) for i in range(self.parameters["num merchants"])]
 
         # create customers
-        for i in range(model_parameters["num customers"]):
+        for i in range(self.parameters["num customers"]):
             c = Customer(i, self, self.random_state)
             self.schedule.add(c)
 
         # create fraudsters
-        for i in range(model_parameters["num fraudsters"]):
+        for i in range(self.parameters["num fraudsters"]):
             f = Fraudster(i, self, self.random_state)
             self.schedule.add(f)
 
@@ -50,13 +58,9 @@ class TransactionModel(Model):
         #     model_reporters={"Gini": compute_gini},
         #     agent_reporters={"Wealth": lambda a: a.wealth})
 
-        # initialise time of day
-        self.timesteps_per_day = 24
-        self.time = 0
-
         # initialise a data collector
         self.datacollector = DataCollector(
-            model_reporters={"date": lambda m: m.time},
+            model_reporters={"date": lambda m: m.curr_datetime},
             agent_reporters={"Account ID": lambda c: c.unique_id,
                              "Merchant": lambda c: c.curr_merchant.unique_id,
                              "Currency": lambda c: c.currency,
@@ -72,7 +76,11 @@ class TransactionModel(Model):
         self.datacollector.collect(self)
 
         # update time
-        self.time = (self.time + 1) % self.timesteps_per_day
+        self.curr_datetime += timedelta(hours=1)
+
+        # check if termination criterion met
+        if self.curr_datetime.date() > self.parameters['end date'].date():
+            self.terminated = True
 
         # TODO: customer/fraudster migration
 

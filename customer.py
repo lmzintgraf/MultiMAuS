@@ -10,8 +10,8 @@ class Customer(Agent):
         # I am not a fraudster
         self.fraudster = 0
 
-        # standard currency for this customer
-        self.currency = 'EUR'
+        # decide which currency to use
+        self.currency = self.pick_currency()
 
         # the customer's credit card
         self.card = None
@@ -85,3 +85,10 @@ class Customer(Agent):
         if avg_amount < self.min_average_amount:
             avg_amount = self.min_average_amount
         return avg_amount
+
+    def pick_currency(self):
+        """ Pick a currency, using the probabilities given in the model parameters """
+        # currencies = self.model.parameters["currencies"]
+        # currency_fracts = self.model.parameters["currency prob non-fraud"]
+        # return self.random_state.choice(currencies, p=currency_fracts)
+        return 'EUR'

@@ -5,12 +5,16 @@ class Fraudster(Agent):
     """ A customer that can make transactions """
     def __init__(self, fraudster_id, transaction_model, random_state):
         super().__init__(fraudster_id, transaction_model)
+        self.random_state = random_state
 
         # I am a fraudster
         self.fraudster = 1
 
-        self.random_state = random_state
-        self.curr_auth_step = 0
+        # decide which currency to use
+        self.currency = self.pick_currency()
+
+        # there's always at least one authentication step
+        self.curr_auth_step = 1
 
         # standard currency for this customer
         self.currency = 'EUR'
@@ -53,3 +57,10 @@ class Fraudster(Agent):
             # cancel the transaction
             auth_quality = None
         return auth_quality
+
+    def pick_currency(self):
+        """ Pick a currency, using the probabilities given in the model parameters """
+        # currencies = self.model.parameters["currencies"]
+        # currency_fracts = self.model.parameters["currency prob fraud"]
+        # return self.random_state.choice(currencies, p=currency_fracts)
+        return 'USD'
