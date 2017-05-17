@@ -5,12 +5,9 @@ from datetime import datetime
 from pytz import timezone, country_timezones
 from sklearn import preprocessing
 from os.path import join
+import utils_data
 
-FOLDER_INPUT_RAW = './input_raw/'
-FILE_INPUT_RAW = join(FOLDER_INPUT_RAW, 'anonymized_dataset.csv')
-FILE_INPUT_PREPROCESSED = join(FOLDER_INPUT_RAW, 'dataset_preprocessed.csv')
-
-dataset = pandas.read_csv(FILE_INPUT_RAW)
+dataset = pandas.read_csv(utils_data.get_path_input_raw())
 print(dataset.head())
 print("")
 
@@ -85,4 +82,4 @@ del dataset["PurchaseCountry"]
 
 print(dataset.head())
 
-dataset.to_csv(FILE_INPUT_PREPROCESSED, index_label=False)
+dataset.to_csv(utils_data.get_path_input_preprocessed(), index_label=False)
