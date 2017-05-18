@@ -1,10 +1,9 @@
-import pandas
-import numpy as np
-from currency_converter import CurrencyConverter
 from datetime import datetime
+import numpy as np
+import pandas
+from currency_converter import CurrencyConverter
 from pytz import timezone, country_timezones
 from sklearn import preprocessing
-from os.path import join
 import utils_data
 
 dataset = pandas.read_csv(utils_data.get_path_input_raw())

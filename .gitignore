@@ -4,3 +4,6 @@ __pycache__
 .idea
 data/input_raw
 data/input_agg
+data/output_raw
+data/output_agg
+data/.ipynb_checkpoints

@@ -60,11 +60,12 @@ class TransactionModel(Model):
 
         # initialise a data collector
         self.datacollector = DataCollector(
-            model_reporters={"date": lambda m: m.curr_datetime},
-            agent_reporters={"Account ID": lambda c: c.unique_id,
-                             "Merchant": lambda c: c.curr_merchant.unique_id,
-                             "Currency": lambda c: c.currency,
-                             "Amount": lambda c: c.curr_transaction_amount,
+            agent_reporters={"date": lambda c: c.model.curr_datetime,
+                             "cardID": lambda c: c.unique_id,
+                             "merchantID": lambda c: c.curr_merchant.unique_id,
+                             "amount": lambda c: c.curr_transaction_amount,
+                             "currency": lambda c: c.currency,
+                             "country": lambda c: c.country,
                              "target": lambda c: c.fraudster})
 
     def step(self):

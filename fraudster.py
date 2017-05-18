@@ -12,6 +12,7 @@ class Fraudster(Agent):
 
         # decide which currency to use
         self.currency = self.pick_currency()
+        self.country = 'india'
 
         # there's always at least one authentication step
         self.curr_auth_step = 1

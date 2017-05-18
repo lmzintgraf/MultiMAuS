@@ -1,6 +1,7 @@
 from transaction_model import TransactionModel
 import parameters
-
+import pandas as pd
+import utils_data
 
 def run_single():
 
@@ -14,7 +15,12 @@ def run_single():
 
     # get the collected data
     agent_vars = model.datacollector.get_agent_vars_dataframe()
+    agent_vars.index = agent_vars.index.droplevel(1)
+    print("\nagent vars:")
     print(agent_vars.head())
+    print(agent_vars.shape)
+
+    agent_vars.to_csv(utils_data.get_path_output_raw(), index_label=False)
 
 
 if __name__ == '__main__':

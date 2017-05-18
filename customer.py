@@ -12,6 +12,7 @@ class Customer(Agent):
 
         # decide which currency to use
         self.currency = self.pick_currency()
+        self.country = 'india'
 
         # the customer's credit card
         self.card = None

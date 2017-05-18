@@ -3,14 +3,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from os.path import join
 
-FOLDER_INPUT_RAW = './input_raw/'
-FOLDER_INPUT_AGG = './input_agg/'
-FOLDER_OUTPUT_RAW = './output_raw/'
-FOLDER_OUTPUT_AGG = './input_raw'
+FOLDER_INPUT_RAW = 'data/input_raw/'
+FOLDER_INPUT_AGG = 'data/input_agg/'
+FOLDER_OUTPUT_RAW = 'data/output_raw/'
+FOLDER_OUTPUT_AGG = 'data/input_raw'
 
 FILE_INPUT_RAW = join(FOLDER_INPUT_RAW, 'anonymized_dataset.csv')
 FILE_INPUT_PREPROCESSED = join(FOLDER_INPUT_RAW, 'dataset_preprocessed.csv')
-
+FILE_OUTPUT_RAW = join(FOLDER_OUTPUT_RAW, 'transaction_log.csv')
 
 def get_folder_input_raw():
     return FOLDER_INPUT_RAW
@@ -26,6 +26,10 @@ def get_path_input_raw():
 
 def get_path_input_preprocessed():
     return FILE_INPUT_PREPROCESSED
+
+
+def get_path_output_raw():
+    return FILE_OUTPUT_RAW
 
 
 def get_dataset():
