@@ -1,17 +1,14 @@
-import numpy as np
-import pandas
-from os.path import join
 from datetime import datetime
+from os.path import join
 
-aggregated_data = pandas.read_csv('./data/real_agg/aggregated_data.csv')
-path_agg_data = './data/real_agg/'
+import numpy as np
 
 
 def get_default_parameters():
 
     params = {
 
-        # the seed for the current simulation
+        # seed for random number generator of current simulation
         "seed": 666,
 
         # start and end date of simulation
@@ -21,14 +18,14 @@ def get_default_parameters():
         # max number of authentication steps (at least 1)
         "max authentication steps": 1,
 
-        # number of customers and fraudsters
+        # number of customers and fraudsters at beginning of simulation
         "num customers": 100,
         "num fraudsters": 8,
 
-        # merchants
+        # number of merchants at the beginning of simulation
         "num merchants": 28,
 
-        # amount range (same currency)
+        # amount range (in Euros)
         "min amount": 0.01,
         "max amount": 10500,
 
@@ -36,9 +33,9 @@ def get_default_parameters():
         'currencies': ['EUR', 'GBP', 'USD'],
 
         # transactions per hour of day
-        'transactions per hour': np.load(join(path_agg_data, 'trans_per_hour.npy')),
+        # 'transactions per hour': np.load(join(path_agg_data, 'trans_per_hour.npy')),
         # transactions per month in year
-        'transactions per month': np.load(join(path_agg_data, 'trans_per_month.npy')),
+        # 'transactions per month': np.load(join(path_agg_data, 'trans_per_month.npy')),
 
         # # countries
         # "country prob": pandas.read_csv('./data/aggregated/country_trans_prob.csv'),

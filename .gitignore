@@ -2,4 +2,6 @@
 *.pyc
 __pycache__
 .idea
-data
+data/real_data
+data/simulator_log
+*.ipynb

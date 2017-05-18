@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from os.path import join
 
-FOLDER_REAL_LOG = 'data/real_log'
+FOLDER_REAL_LOG = 'data/real_data'
 FOLDER_REAL_AGG = 'data/real_agg'
 FOLDER_SIMULATOR_LOG = 'data/simulator_log'
 FOLDER_SIMULATOR_AGG = 'data/simulator_agg'
@@ -41,6 +41,38 @@ def get_dataset(data_source):
     dataset1.name = 'datasetFraud'
 
     return dataset01, dataset0, dataset1
+
+
+def get_data_stats(data_source):
+
+    datasets = get_dataset(data_source)
+
+    data_stats_cols = ['all', 'non-fraud', 'fraud']
+    data_stats = pd.DataFrame(columns=data_stats_cols)
+
+    data_stats.loc['transactions'] = [d.shape[0] for d in datasets]
+
+    data_stats.loc['cards'] = [len(d["CardID"].unique()) for d in datasets]
+    data_stats.loc['cards, single use'] = [sum(d["CardID"].value_counts() == 1) for d in datasets]
+    data_stats.loc['cards, multi use'] = [sum(d["CardID"].value_counts() > 1) for d in datasets]
+
+    data_stats.loc['first transaction'] = [min(d["Date"]).date() for d in datasets]
+    data_stats.loc['last transaction'] = [max(d["Date"]).date() for d in datasets]
+
+    data_stats.loc['min amount'] = [min(d["Amount"]) for d in datasets]
+    data_stats.loc['max amount'] = [max(d["Amount"]) for d in datasets]
+    data_stats.loc['avg amount'] = [np.average(d["Amount"]) for d in datasets]
+
+    data_stats.loc['num merchants'] = [len(d["MerchantID"].unique()) for d in datasets]
+
+    data_stats.loc['countries'] = [len(d["Country"].unique()) for d in datasets]
+    data_stats.loc['currencies'] = [len(d["Currency"].unique()) for d in datasets]
+
+    data_stats.loc['min trans/card'] = [min(d["CardID"].value_counts()) for d in datasets]
+    data_stats.loc['max trans/card'] = [max(d["CardID"].value_counts()) for d in datasets]
+    data_stats.loc['avg trans/card'] = [np.average(d["CardID"].value_counts()) for d in datasets]
+
+    return data_stats
 
 
 def get_transaction_prob(col_name, d01, d0, d1):

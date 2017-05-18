@@ -1,17 +1,14 @@
-import numpy as np
 from datetime import timedelta
 
-from mesa import Model
-from mesa.time import RandomActivation
-from mesa.space import MultiGrid
-from mesa.datacollection import DataCollector
-
-import parameters
-
+import numpy as np
+from authenticator import Authenticator
 from customer import Customer
 from fraudster import Fraudster
-from merchant import Merchant
-from authenticator import Authenticator
+from mesa import Model
+from mesa.datacollection import DataCollector
+from mesa.time import RandomActivation
+
+from simulator.merchant import Merchant
 
 
 class TransactionModel(Model):

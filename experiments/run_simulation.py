@@ -1,7 +1,7 @@
-from transaction_model import TransactionModel
-import parameters
-import pandas as pd
-import utils_data
+from data import utils_data
+from simulator import parameters
+from simulator.transaction_model import TransactionModel
+
 
 def run_single():
 

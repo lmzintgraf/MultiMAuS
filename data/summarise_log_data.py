@@ -1,9 +1,6 @@
-"""
-The data collected here will be directly used as input to the simulator.
-"""
-import numpy as np
-import utils_data
 from os.path import join
+import numpy as np
+from data import utils_data
 
 
 def aggregate(data_source):
@@ -21,6 +18,9 @@ def aggregate(data_source):
 
     # load data
     dataset01, dataset0, dataset1 = utils_data.get_dataset(data_source)
+
+    data_stats = utils_data.get_data_stats(data_source)
+    data_stats.to_csv(join(utils_data.get_folder_input_agg(), 'aggregated_data.csv'))
 
     # transactions per hour of day
     trans_per_hour0 = dataset0["Date"].apply(lambda date: date.hour).value_counts(sort=False)
