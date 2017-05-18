@@ -3,13 +3,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from os.path import join
 
-FOLDER_INPUT_LOG = 'data/input_log/'
-FOLDER_INPUT_AGG = 'data/input_agg/'
-FOLDER_OUTPUT_LOG = 'data/output_log/'
-FOLDER_OUTPUT_AGG = 'data/input_log'
+FOLDER_INPUT_LOG = 'data/input_log'
+FOLDER_INPUT_AGG = 'data/input_agg'
+FOLDER_SIMULATOR_LOG = 'data/simulator_log'
+FOLDER_SIMULATOR_AGG = 'data/simulator_agg'
 
+FILE_INPUT_RAW = join(FOLDER_INPUT_LOG, 'anonymized_dataset.csv')
 FILE_INPUT_LOG = join(FOLDER_INPUT_LOG, 'transaction_log.csv')
-FILE_OUTPUT_LOG = join(FOLDER_OUTPUT_LOG, 'transaction_log.csv')
+FILE_OUTPUT_LOG = join(FOLDER_SIMULATOR_LOG, 'transaction_log.csv')
 
 
 def get_dataset(dataset_type):
@@ -23,7 +24,7 @@ def get_dataset(dataset_type):
     if dataset_type == 'input':
         logs_folder = FOLDER_INPUT_LOG
     elif dataset_type == 'output':
-        logs_folder = FOLDER_OUTPUT_LOG
+        logs_folder = FOLDER_SIMULATOR_LOG
     else:
         raise KeyError('dataset_type not known; must be input or output')
 

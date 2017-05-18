@@ -4,6 +4,3 @@ __pycache__
 .idea
 data/input_log
 data/input_agg
-data/output_log
-data/output_agg
-data/.ipynb_checkpoints
