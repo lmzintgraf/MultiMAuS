@@ -8,7 +8,6 @@ FOLDER_INPUT_AGG = 'data/input_agg/'
 FOLDER_OUTPUT_LOG = 'data/output_log/'
 FOLDER_OUTPUT_AGG = 'data/input_log'
 
-FILE_INPUT_RAW = join(FOLDER_INPUT_LOG, 'anonymized_dataset.csv')
 FILE_INPUT_LOG = join(FOLDER_INPUT_LOG, 'transaction_log.csv')
 FILE_OUTPUT_LOG = join(FOLDER_OUTPUT_LOG, 'transaction_log.csv')
 
@@ -45,7 +44,7 @@ def get_dataset(dataset_type):
     return dataset01, dataset0, dataset1
 
 
-def get_transaction_prob(col_name, d01=get_dataset()[0], d0=get_dataset()[1], d1=get_dataset()[2]):
+def get_transaction_prob(col_name, d01, d0, d1):
     """ calculate fractions of transactions for given column """
     num_trans = pandas.DataFrame(0, index=d01[col_name].value_counts().index, columns=['all', 'non-fraud', 'fraud'])
     num_trans['all'] = d01[col_name].value_counts()

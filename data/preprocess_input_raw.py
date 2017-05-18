@@ -6,7 +6,7 @@ from pytz import timezone, country_timezones
 from sklearn import preprocessing
 import utils_data
 
-dataset = pandas.read_csv(utils_data.FILE_INPUT_RAW)
+dataset = pandas.read_csv('input_raw/anonymized_dataset.csv')
 print(dataset.head())
 print("")
 
