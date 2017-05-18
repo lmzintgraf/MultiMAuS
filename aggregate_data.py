@@ -3,13 +3,24 @@ The data collected here will be directly used as input to the simulator.
 """
 import numpy as np
 import utils_data
+from os.path import join
 
 
-def aggregate(PATH_RAW, PATH_AGG):
+def aggregate(data_source):
+    """
+    :param data_source:    str, 'real', or 'simulator'
+    :return: 
+    """
+
+    if data_source == 'real':
+        path_folder = utils_data.FOLDER_REAL_AGG
+    elif data_source == 'simulator':
+        path_folder = utils_data.FOLDER_SIMULATOR_AGG
+    else:
+        raise KeyError('data_source unknown, choose real or simulator')
 
     # load data
-    dataset01, dataset0, dataset1 = utils_data.get_dataset()
-    datasets = [dataset01, dataset0, dataset1]
+    dataset01, dataset0, dataset1 = utils_data.get_dataset(data_source)
 
     # transactions per hour of day
     trans_per_hour0 = dataset0["Date"].apply(lambda date: date.hour).value_counts(sort=False)
@@ -18,7 +29,7 @@ def aggregate(PATH_RAW, PATH_AGG):
     trans_per_hour[trans_per_hour0.index, 0] = trans_per_hour0
     trans_per_hour[trans_per_hour1.index, 1] = trans_per_hour1
     trans_per_hour /= np.sum(trans_per_hour, axis=0)
-    np.save('aggregated/trans_per_hour', trans_per_hour)
+    np.save(join(path_folder, 'trans_per_hour'), trans_per_hour)
 
     # transactions per month
     trans_per_month0 = dataset0["Date"].apply(lambda date: date.month).value_counts(sort=False)
@@ -27,7 +38,7 @@ def aggregate(PATH_RAW, PATH_AGG):
     trans_per_month[trans_per_month0.index-1, 0] = trans_per_month0
     trans_per_month[trans_per_month1.index-1, 1] = trans_per_month1
     trans_per_month /= np.sum(trans_per_month, axis=0)
-    np.save('aggregated/trans_per_month', trans_per_month)
+    np.save(join(path_folder, 'trans_per_month'), trans_per_month)
 
 
 
@@ -312,7 +323,7 @@ def aggregate(PATH_RAW, PATH_AGG):
 if __name__ == '__main__':
 
     # aggregate the data for the real (private) dataset
-    aggregate(utils_data.get_path_input_preprocessed(), utils_data.get_folder_input_agg())
+    aggregate('real')
 
     # aggregate the data for the simulation logs
-    aggregate(utils_data.get_path_output_raw(), utils_data.get_folder_input_agg())
+    aggregate('simulator')

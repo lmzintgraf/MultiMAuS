@@ -1,4 +1,4 @@
-import pandas
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from os.path import join
@@ -8,29 +8,28 @@ FOLDER_REAL_AGG = 'data/real_agg'
 FOLDER_SIMULATOR_LOG = 'data/simulator_log'
 FOLDER_SIMULATOR_AGG = 'data/simulator_agg'
 
-FILE_INPUT_LOG = join(FOLDER_REAL_LOG, 'transaction_log.csv')
-FILE_OUTPUT_LOG = join(FOLDER_SIMULATOR_LOG, 'transaction_log.csv')
+FILE_REAL_LOG = join(FOLDER_REAL_LOG, 'transaction_log.csv')
+FILE_SIMULATOR_LOG = join(FOLDER_SIMULATOR_LOG, 'transaction_log.csv')
 
 
-def get_dataset(dataset_type):
+def get_dataset(data_source):
     """
     Returns the dataset (full), and subsets for non-fraud and fraud only.
-    :param dataset_type:    str, 'real' or 'simulated'
-                            Which data to use, the real (input) or from the simulator (simulator)
+    :param data_source:    where data comes from, type: str, value: 'real' or 'simulator'
     :return: 
     """
 
-    if dataset_type == 'real':
+    if data_source == 'real':
         logs_folder = FOLDER_REAL_LOG
-    elif dataset_type == 'simulated':
+    elif data_source == 'simulator':
         logs_folder = FOLDER_SIMULATOR_LOG
     else:
         raise KeyError('dataset_type not known; must be input or output')
 
     # get dataset from file
-    dataset01 = pandas.read_csv(join(logs_folder, 'transaction_log'))
+    dataset01 = pd.read_csv(join(logs_folder, 'transaction_log.csv'))
     # make the "date" column actually dates
-    dataset01["Date"] = pandas.to_datetime(dataset01["Date"])
+    dataset01["Date"] = pd.to_datetime(dataset01["Date"])
 
     # for convenience split the dataset into non-fraud(0)/fraud(1)
     dataset0 = dataset01[dataset01["Target"] == 0]
@@ -46,7 +45,7 @@ def get_dataset(dataset_type):
 
 def get_transaction_prob(col_name, d01, d0, d1):
     """ calculate fractions of transactions for given column """
-    num_trans = pandas.DataFrame(0, index=d01[col_name].value_counts().index, columns=['all', 'non-fraud', 'fraud'])
+    num_trans = pd.DataFrame(0, index=d01[col_name].value_counts().index, columns=['all', 'non-fraud', 'fraud'])
     num_trans['all'] = d01[col_name].value_counts()
     num_trans['non-fraud'] = d0[col_name].value_counts()
     num_trans['fraud'] = d1[col_name].value_counts()
@@ -64,7 +63,7 @@ def get_grouped_prob(group_by, col_name):
 def get_transaction_dist(col_name):
     """ calculate fractions of transactions for given column """
     possible_vals = get_dataset()[0][col_name].value_counts().unique()
-    trans_count = pandas.DataFrame(0, index=possible_vals, columns=['all', 'non-fraud', 'fraud'])
+    trans_count = pd.DataFrame(0, index=possible_vals, columns=['all', 'non-fraud', 'fraud'])
     trans_count['all'] = get_dataset()[0][col_name].value_counts().value_counts()
     trans_count['non-fraud'] = get_dataset()[1][col_name].value_counts().value_counts()
     trans_count['fraud'] = get_dataset()[1][col_name].value_counts().value_counts()
@@ -72,7 +71,7 @@ def get_transaction_dist(col_name):
     trans_count /= np.sum(trans_count.values, axis=0)
 
     # save
-    trans_count.to_csv(join(FOLDER_INPUT_AGG, 'fract-dist.csv'.format(col_name)), index_label=False)
+    trans_count.to_csv(join(FOLDER_REAL_AGG, 'fract-dist.csv'.format(col_name)), index_label=False)
 
     # print
     print(col_name)
@@ -91,7 +90,7 @@ def plot_hist_num_transactions(trans_frac, col_name):
         plt.ylabel('num transactions')
         if i == 2:
             plt.xlabel(col_name)
-    plt.savefig(join(FOLDER_INPUT_AGG, '{}_num-trans_hist'.format(col_name)))
+    plt.savefig(join(FOLDER_REAL_AGG, '{}_num-trans_hist'.format(col_name)))
     plt.close()
 
 
@@ -108,5 +107,5 @@ def plot_bar_trans_prob(trans_frac, col_name, file_name=None):
     plt.legend()
     if not file_name:
         file_name = col_name
-    plt.savefig(join(FOLDER_INPUT_AGG, '{}_num-trans_bar'.format(file_name)))
+    plt.savefig(join(FOLDER_REAL_AGG, '{}_num-trans_bar'.format(file_name)))
     plt.close()

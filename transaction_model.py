@@ -59,20 +59,20 @@ class TransactionModel(Model):
 
         # initialise a data collector
         self.datacollector = DataCollector(
-            agent_reporters={"date": lambda c: c.model.curr_datetime,
-                             "cardID": lambda c: c.unique_id,
-                             "merchantID": lambda c: c.curr_merchant.unique_id,
-                             "amount": lambda c: c.curr_transaction_amount,
-                             "currency": lambda c: c.currency,
-                             "country": lambda c: c.country,
-                             "target": lambda c: c.fraudster})
+            agent_reporters={"Date": lambda c: c.model.curr_datetime,
+                             "CardID": lambda c: c.unique_id,
+                             "MerchantID": lambda c: c.curr_merchant.unique_id,
+                             "Amount": lambda c: c.curr_transaction_amount,
+                             "Currency": lambda c: c.currency,
+                             "Country": lambda c: c.country,
+                             "Target": lambda c: c.fraudster})
 
     def step(self):
 
         # pick the customers and agents that will make a transaction
         for c in self.random_state.choice(self.customers, size=5):
             self.schedule.add(c)
-        for f in self.random_state.choice(self.customers, size=3):
+        for f in self.random_state.choice(self.fraudsters, size=3):
             self.schedule.add(f)
 
         # this calls the step function of each agent in the schedule (customer, fraudster)

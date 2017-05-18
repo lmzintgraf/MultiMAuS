@@ -16,7 +16,7 @@ def get_default_parameters():
 
         # start and end date of simulation
         'start date': datetime(2016, 1, 1),
-        'end date': datetime(2016, 1, 31),
+        'end date': datetime(2016, 12, 31),
 
         # max number of authentication steps (at least 1)
         "max authentication steps": 1,

@@ -20,7 +20,7 @@ def run_single():
     print(agent_vars.head())
     print(agent_vars.shape)
 
-    agent_vars.to_csv(utils_data.get_path_output_raw(), index_label=False)
+    agent_vars.to_csv(utils_data.FILE_SIMULATOR_LOG, index_label=False)
 
 
 if __name__ == '__main__':
