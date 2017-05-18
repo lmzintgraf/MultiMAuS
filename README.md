@@ -1,5 +1,6 @@
-# CredSim
-Simulator for online credit card transactions with multi-step authentication
+# MultiMAuS: A Multi-Modal Authentication Simulator
+
+Simulator for online credit card transactions with multi-modal authentication.
 
 
 ### DATA
