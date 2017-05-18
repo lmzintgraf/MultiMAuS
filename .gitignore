@@ -2,8 +2,8 @@
 *.pyc
 __pycache__
 .idea
-data/input_raw
+data/input_log
 data/input_agg
-data/output_raw
+data/output_log
 data/output_agg
 data/.ipynb_checkpoints

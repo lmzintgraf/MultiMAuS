@@ -26,11 +26,11 @@ class TransactionModel(Model):
         self.curr_datetime = self.parameters['start date']
         self.terminated = False
 
+        # set up a schedule
+        self.schedule = RandomActivation(self)
+
         # random state to reproduce results
         self.random_state = np.random.RandomState(self.parameters["seed"])
-
-        # random activation scheme for the customers
-        self.schedule = RandomActivation(self, seed=self.parameters["seed"])
 
         # create the payment processing platform via which all transactions go
         self.authenticator = Authenticator(self, self.random_state, self.parameters["max authentication steps"])
@@ -39,15 +39,14 @@ class TransactionModel(Model):
         self.merchants = [Merchant(i, self) for i in range(self.parameters["num merchants"])]
 
         # create customers
+        self.customers = []
         for i in range(self.parameters["num customers"]):
-            c = Customer(i, self, self.random_state)
-            self.schedule.add(c)
+            self.customers.append(Customer(i, self, self.random_state))
 
         # create fraudsters
+        self.fraudsters = []
         for i in range(self.parameters["num fraudsters"]):
-            f = Fraudster(i, self, self.random_state)
-            self.schedule.add(f)
-
+            self.fraudsters.append(Fraudster(i, self, self.random_state))
 
             # # Add the agent to a random grid cell
             # x = random.randrange(self.grid.width)
@@ -70,11 +69,20 @@ class TransactionModel(Model):
 
     def step(self):
 
+        # pick the customers and agents that will make a transaction
+        for c in self.random_state.choice(self.customers, size=5):
+            self.schedule.add(c)
+        for f in self.random_state.choice(self.customers, size=3):
+            self.schedule.add(f)
+
         # this calls the step function of each agent in the schedule (customer, fraudster)
         self.schedule.step()
 
         # write new transactions to log
         self.datacollector.collect(self)
+
+        # remove agents from scheduler
+        self.schedule.agents = []
 
         # update time
         self.curr_datetime += timedelta(hours=1)

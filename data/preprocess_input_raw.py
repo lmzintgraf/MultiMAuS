@@ -6,7 +6,7 @@ from pytz import timezone, country_timezones
 from sklearn import preprocessing
 import utils_data
 
-dataset = pandas.read_csv(utils_data.get_path_input_raw())
+dataset = pandas.read_csv(utils_data.FILE_INPUT_RAW)
 print(dataset.head())
 print("")
 
@@ -84,4 +84,4 @@ dataset = dataset[['Date', 'CardID', 'MerchantID', 'Amount', 'Currency', 'Countr
 
 print(dataset.head())
 
-dataset.to_csv(utils_data.get_path_input_preprocessed(), index_label=False)
+dataset.to_csv(utils_data.FILE_INPUT_LOG, index_label=False)

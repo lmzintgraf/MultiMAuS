@@ -1,34 +1,33 @@
 """
 The data collected here will be directly used as input to the simulator.
 """
-import pandas
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib
 import utils_data
 
 
-# load data
-dataset01, dataset0, dataset1 = utils_data.get_dataset()
-datasets = [dataset01, dataset0, dataset1]
+def aggregate(PATH_RAW, PATH_AGG):
 
-# transactions per hour of day
-trans_per_hour0 = dataset0["Date"].apply(lambda date: date.hour).value_counts(sort=False)
-trans_per_hour1 = dataset1["Date"].apply(lambda date: date.hour).value_counts(sort=False)
-trans_per_hour = np.zeros((24, 2))
-trans_per_hour[trans_per_hour0.index, 0] = trans_per_hour0
-trans_per_hour[trans_per_hour1.index, 1] = trans_per_hour1
-trans_per_hour /= np.sum(trans_per_hour, axis=0)
-np.save('aggregated/trans_per_hour', trans_per_hour)
+    # load data
+    dataset01, dataset0, dataset1 = utils_data.get_dataset()
+    datasets = [dataset01, dataset0, dataset1]
 
-# transactions per month
-trans_per_month0 = dataset0["Date"].apply(lambda date: date.month).value_counts(sort=False)
-trans_per_month1 = dataset1["Date"].apply(lambda date: date.month).value_counts(sort=False)
-trans_per_month = np.zeros((12, 2))
-trans_per_month[trans_per_month0.index-1, 0] = trans_per_month0
-trans_per_month[trans_per_month1.index-1, 1] = trans_per_month1
-trans_per_month /= np.sum(trans_per_month, axis=0)
-np.save('aggregated/trans_per_month', trans_per_month)
+    # transactions per hour of day
+    trans_per_hour0 = dataset0["Date"].apply(lambda date: date.hour).value_counts(sort=False)
+    trans_per_hour1 = dataset1["Date"].apply(lambda date: date.hour).value_counts(sort=False)
+    trans_per_hour = np.zeros((24, 2))
+    trans_per_hour[trans_per_hour0.index, 0] = trans_per_hour0
+    trans_per_hour[trans_per_hour1.index, 1] = trans_per_hour1
+    trans_per_hour /= np.sum(trans_per_hour, axis=0)
+    np.save('aggregated/trans_per_hour', trans_per_hour)
+
+    # transactions per month
+    trans_per_month0 = dataset0["Date"].apply(lambda date: date.month).value_counts(sort=False)
+    trans_per_month1 = dataset1["Date"].apply(lambda date: date.month).value_counts(sort=False)
+    trans_per_month = np.zeros((12, 2))
+    trans_per_month[trans_per_month0.index-1, 0] = trans_per_month0
+    trans_per_month[trans_per_month1.index-1, 1] = trans_per_month1
+    trans_per_month /= np.sum(trans_per_month, axis=0)
+    np.save('aggregated/trans_per_month', trans_per_month)
 
 
 
@@ -308,3 +307,12 @@ np.save('aggregated/trans_per_month', trans_per_month)
 #     print("")
 #
 #     agent_stats.to_csv('./merchStats_{}.csv'.format(d.name), index_label=False)
+
+
+if __name__ == '__main__':
+
+    # aggregate the data for the real (private) dataset
+    aggregate(utils_data.get_path_input_preprocessed(), utils_data.get_folder_input_agg())
+
+    # aggregate the data for the simulation logs
+    aggregate(utils_data.get_path_output_raw(), utils_data.get_folder_input_agg())

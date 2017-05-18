@@ -3,40 +3,33 @@ import numpy as np
 import matplotlib.pyplot as plt
 from os.path import join
 
-FOLDER_INPUT_RAW = 'data/input_raw/'
+FOLDER_INPUT_LOG = 'data/input_log/'
 FOLDER_INPUT_AGG = 'data/input_agg/'
-FOLDER_OUTPUT_RAW = 'data/output_raw/'
-FOLDER_OUTPUT_AGG = 'data/input_raw'
+FOLDER_OUTPUT_LOG = 'data/output_log/'
+FOLDER_OUTPUT_AGG = 'data/input_log'
 
-FILE_INPUT_RAW = join(FOLDER_INPUT_RAW, 'anonymized_dataset.csv')
-FILE_INPUT_PREPROCESSED = join(FOLDER_INPUT_RAW, 'dataset_preprocessed.csv')
-FILE_OUTPUT_RAW = join(FOLDER_OUTPUT_RAW, 'transaction_log.csv')
-
-def get_folder_input_raw():
-    return FOLDER_INPUT_RAW
+FILE_INPUT_RAW = join(FOLDER_INPUT_LOG, 'anonymized_dataset.csv')
+FILE_INPUT_LOG = join(FOLDER_INPUT_LOG, 'transaction_log.csv')
+FILE_OUTPUT_LOG = join(FOLDER_OUTPUT_LOG, 'transaction_log.csv')
 
 
-def get_folder_input_agg():
-    return FOLDER_INPUT_AGG
+def get_dataset(dataset_type):
+    """
+    Returns the dataset (full), and subsets for non-fraud and fraud only.
+    :param dataset_type:    str, 'input' or 'output'
+                            
+    :return: 
+    """
 
-
-def get_path_input_raw():
-    return FILE_INPUT_RAW
-
-
-def get_path_input_preprocessed():
-    return FILE_INPUT_PREPROCESSED
-
-
-def get_path_output_raw():
-    return FILE_OUTPUT_RAW
-
-
-def get_dataset():
-    """ Returns the dataset (full), and subsets for non-fraud and fraud only """
+    if dataset_type == 'input':
+        logs_folder = FOLDER_INPUT_LOG
+    elif dataset_type == 'output':
+        logs_folder = FOLDER_OUTPUT_LOG
+    else:
+        raise KeyError('dataset_type not known; must be input or output')
 
     # get dataset from file
-    dataset01 = pandas.read_csv(get_path_input_preprocessed())
+    dataset01 = pandas.read_csv(join(logs_folder, 'transaction_log'))
     # make the "date" column actually dates
     dataset01["Date"] = pandas.to_datetime(dataset01["Date"])
 
@@ -80,7 +73,7 @@ def get_transaction_dist(col_name):
     trans_count /= np.sum(trans_count.values, axis=0)
 
     # save
-    trans_count.to_csv(join(get_folder_input_agg(), 'fract-dist.csv'.format(col_name)), index_label=False)
+    trans_count.to_csv(join(FOLDER_INPUT_AGG, 'fract-dist.csv'.format(col_name)), index_label=False)
 
     # print
     print(col_name)
@@ -99,7 +92,7 @@ def plot_hist_num_transactions(trans_frac, col_name):
         plt.ylabel('num transactions')
         if i == 2:
             plt.xlabel(col_name)
-    plt.savefig(join(get_folder_input_agg(), '{}_num-trans_hist'.format(col_name)))
+    plt.savefig(join(FOLDER_INPUT_AGG, '{}_num-trans_hist'.format(col_name)))
     plt.close()
 
 
@@ -116,5 +109,5 @@ def plot_bar_trans_prob(trans_frac, col_name, file_name=None):
     plt.legend()
     if not file_name:
         file_name = col_name
-    plt.savefig(join(get_folder_input_agg(), '{}_num-trans_bar'.format(file_name)))
+    plt.savefig(join(FOLDER_INPUT_AGG, '{}_num-trans_bar'.format(file_name)))
     plt.close()
