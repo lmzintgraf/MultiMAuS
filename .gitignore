@@ -2,7 +2,4 @@
 *.pyc
 __pycache__
 .idea
-data/real_log
-data/real_agg
-data/simulator_agg
-data/simulator_log
+data

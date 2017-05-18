@@ -1,4 +1,4 @@
-# MultiMAuS: A Multi-Modal Authentication Simulator
+# Multi-MAuS: A Multi-Modal Authentication Simulator
 
 Simulator for online credit card transactions with multi-modal authentication.
 
