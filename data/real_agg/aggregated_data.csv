@@ -1,0 +1,16 @@
+,ALL,NON-FRAUD,FRAUD
+transactions,90559,89396,1163
+cards,54764,54231,799
+"cards, single use",35071,34942,543
+"cards, multi use",19693,19289,256
+first transaction,2016-01-01,2016-01-01,2016-03-02
+last transaction,2016-12-31,2016-12-31,2016-11-28
+min amount,0.01,0.01,1.0
+max amount,7835.56,7835.56,2737.02
+avg amount,295.1765458982542,298.21394022103897,61.701994840928634
+num merchants,25,25,6
+countries,128,128,19
+currencies,6,6,3
+min trans/card,1,1,1
+max trans/card,109,109,21
+avg trans/card,1.6536228179095755,1.6484298648374547,1.455569461827284

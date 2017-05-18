@@ -3,8 +3,8 @@ import pandas
 from os.path import join
 from datetime import datetime
 
-aggregated_data = pandas.read_csv('./data/input_agg/aggregated_data.csv')
-path_agg_data = './data/input_agg/'
+aggregated_data = pandas.read_csv('./data/real_agg/aggregated_data.csv')
+path_agg_data = './data/real_agg/'
 
 
 def get_default_parameters():

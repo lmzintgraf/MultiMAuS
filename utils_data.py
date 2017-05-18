@@ -3,27 +3,26 @@ import numpy as np
 import matplotlib.pyplot as plt
 from os.path import join
 
-FOLDER_INPUT_LOG = 'data/input_log'
-FOLDER_INPUT_AGG = 'data/input_agg'
+FOLDER_REAL_LOG = 'data/real_log'
+FOLDER_REAL_AGG = 'data/real_agg'
 FOLDER_SIMULATOR_LOG = 'data/simulator_log'
 FOLDER_SIMULATOR_AGG = 'data/simulator_agg'
 
-FILE_INPUT_RAW = join(FOLDER_INPUT_LOG, 'anonymized_dataset.csv')
-FILE_INPUT_LOG = join(FOLDER_INPUT_LOG, 'transaction_log.csv')
+FILE_INPUT_LOG = join(FOLDER_REAL_LOG, 'transaction_log.csv')
 FILE_OUTPUT_LOG = join(FOLDER_SIMULATOR_LOG, 'transaction_log.csv')
 
 
 def get_dataset(dataset_type):
     """
     Returns the dataset (full), and subsets for non-fraud and fraud only.
-    :param dataset_type:    str, 'input' or 'output'
-                            
+    :param dataset_type:    str, 'real' or 'simulated'
+                            Which data to use, the real (input) or from the simulator (simulator)
     :return: 
     """
 
-    if dataset_type == 'input':
-        logs_folder = FOLDER_INPUT_LOG
-    elif dataset_type == 'output':
+    if dataset_type == 'real':
+        logs_folder = FOLDER_REAL_LOG
+    elif dataset_type == 'simulated':
         logs_folder = FOLDER_SIMULATOR_LOG
     else:
         raise KeyError('dataset_type not known; must be input or output')

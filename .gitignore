@@ -2,5 +2,5 @@
 *.pyc
 __pycache__
 .idea
-data/input_log
-data/input_agg
+data/real_log
+data/real_agg

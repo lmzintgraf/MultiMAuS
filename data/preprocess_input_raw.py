@@ -5,7 +5,7 @@ from currency_converter import CurrencyConverter
 from pytz import timezone, country_timezones
 from sklearn import preprocessing
 
-dataset = pandas.read_csv('input_log/anonymized_dataset.csv')
+dataset = pandas.read_csv('real_log/anonymized_dataset.csv')
 print(dataset.head())
 print("")
 
@@ -83,4 +83,4 @@ dataset = dataset[['Date', 'CardID', 'MerchantID', 'Amount', 'Currency', 'Countr
 
 print(dataset.head())
 
-dataset.to_csv('input_log/transaction_log.csv', index_label=False)
+dataset.to_csv('real_log/transaction_log.csv', index_label=False)
