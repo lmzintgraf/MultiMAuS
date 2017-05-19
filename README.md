@@ -1,10 +1,15 @@
-# CredSim
-Simulator for online credit card transactions with multi-step authentication
+# Multi-MAuS: A Multi-Modal Authentication Simulator
 
-## Prerequisites
-Python 3, mesa (use forked version from my github)
+Simulator for online credit card transactions with multi-modal authentication.
 
-## 09-05-2017 NOTE from Dennis:
-Created this branch so that I can safely mess around with different ways of communication between Java and Python, without messing anything up in master. 
-This seems useful to me because, ultimately, I suspect I'll be interested in having my Java-based system receive data directly from the Python simulator
-(and possibly also have the Python simulator respond to the behaviour of the Java-based system).
+
+### DATA
+
+#### Data handling
+
+- The original (private!) data is in  the folder data/real_log/transaction_log.csv. It can be produced from the raw data (anonymized_dataset.csv) with preprocess_data_raw.py.
+
+- Aggregated from the original data is stored in the folder data/real_agg. It is used as direct input to the simulator.
+
+- The simulator saves the logs in data/simulator_log/transaction_log.csv.
+

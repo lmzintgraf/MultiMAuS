@@ -1,4 +1,5 @@
 import numpy as np
+from datetime import timedelta
 
 from mesa import Model
 from mesa.time import RandomActivation
@@ -18,28 +19,34 @@ class TransactionModel(Model):
     def __init__(self, model_parameters):
         super().__init__()
 
-        # random state to reproduce results
-        self.random_state = np.random.RandomState(model_parameters["seed"])
+        # load parameters
+        self.parameters = model_parameters
 
-        # random activation scheme for the customers
-        self.schedule = RandomActivation(self, seed=model_parameters["seed"])
+        # set current datetime and termination status
+        self.curr_datetime = self.parameters['start date']
+        self.terminated = False
+
+        # set up a schedule
+        self.schedule = RandomActivation(self)
+
+        # random state to reproduce results
+        self.random_state = np.random.RandomState(self.parameters["seed"])
 
         # create the payment processing platform via which all transactions go
-        self.authenticator = Authenticator(self, self.random_state, model_parameters["max authentication steps"])
+        self.authenticator = Authenticator(self, self.random_state, self.parameters["max authentication steps"])
 
         # create merchants
-        self.merchants = [Merchant(i, self) for i in range(model_parameters["num merchants"])]
+        self.merchants = [Merchant(i, self) for i in range(self.parameters["num merchants"])]
 
         # create customers
-        for i in range(model_parameters["num customers"]):
-            c = Customer(i, self, self.random_state)
-            self.schedule.add(c)
+        self.customers = []
+        for i in range(self.parameters["num customers"]):
+            self.customers.append(Customer(i, self, self.random_state))
 
         # create fraudsters
-        for i in range(model_parameters["num fraudsters"]):
-            f = Fraudster(i, self, self.random_state)
-            self.schedule.add(f)
-
+        self.fraudsters = []
+        for i in range(self.parameters["num fraudsters"]):
+            self.fraudsters.append(Fraudster(i, self, self.random_state))
 
             # # Add the agent to a random grid cell
             # x = random.randrange(self.grid.width)
@@ -50,20 +57,23 @@ class TransactionModel(Model):
         #     model_reporters={"Gini": compute_gini},
         #     agent_reporters={"Wealth": lambda a: a.wealth})
 
-        # initialise time of day
-        self.timesteps_per_day = 24
-        self.time = 0
-
         # initialise a data collector
         self.datacollector = DataCollector(
-            model_reporters={"date": lambda m: m.time},
-            agent_reporters={"Account ID": lambda c: c.unique_id,
-                             "Merchant": lambda c: c.curr_merchant.unique_id,
-                             "Currency": lambda c: c.currency,
+            agent_reporters={"Date": lambda c: c.model.curr_datetime,
+                             "CardID": lambda c: c.unique_id,
+                             "MerchantID": lambda c: c.curr_merchant.unique_id,
                              "Amount": lambda c: c.curr_transaction_amount,
-                             "target": lambda c: c.fraudster})
+                             "Currency": lambda c: c.currency,
+                             "Country": lambda c: c.country,
+                             "Target": lambda c: c.fraudster})
 
     def step(self):
+
+        # pick the customers and agents that will make a transaction
+        for c in self.random_state.choice(self.customers, size=5):
+            self.schedule.add(c)
+        for f in self.random_state.choice(self.fraudsters, size=3):
+            self.schedule.add(f)
 
         # this calls the step function of each agent in the schedule (customer, fraudster)
         self.schedule.step()
@@ -71,8 +81,15 @@ class TransactionModel(Model):
         # write new transactions to log
         self.datacollector.collect(self)
 
+        # remove agents from scheduler
+        self.schedule.agents = []
+
         # update time
-        self.time = (self.time + 1) % self.timesteps_per_day
+        self.curr_datetime += timedelta(hours=1)
+
+        # check if termination criterion met
+        if self.curr_datetime.date() > self.parameters['end date'].date():
+            self.terminated = True
 
         # TODO: customer/fraudster migration
 
