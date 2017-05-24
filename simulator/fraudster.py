@@ -1,43 +1,33 @@
-from mesa import Agent
+from simulator.abstract_customer import AbstractCustomer
 
 
-class Fraudster(Agent):
+class Fraudster(AbstractCustomer):
     """ A customer that can make transactions """
-    def __init__(self, fraudster_id, transaction_model, random_state):
+    def __init__(self, fraudster_id, transaction_model):
         super().__init__(fraudster_id, transaction_model)
-        self.random_state = random_state
 
         # I am a fraudster
         self.fraudster = 1
 
-        # decide which currency to use
-        self.currency = self.pick_currency()
-        self.country = 'india'
-
         # there's always at least one authentication step
         self.curr_auth_step = 1
 
-        # standard currency for this customer
-        self.currency = 'EUR'
-
-        # the customer's credit card
-        self.card = None
-
-        # values of the current transaction
-        self.curr_merchant = None
-        self.curr_transaction_amount = 0
-
-        # gather some statistics
+        # fields for some statistics
         self.num_successful_transactions = 0
         self.num_cancelled_transactions = 0
 
-    def step(self):
-        """ This is called in each simulation step """
-        self.make_transaction()
+    def start_transaction(self):
+        """
+        Make a fraudulent transaction.
+        :return: 
+        """
+        # randomly pick a merchant
+        self.curr_merchant = self.model.random_state.choice(self.model.merchants)
 
-    def make_transaction(self):
-        self.curr_merchant = self.random_state.choice(self.model.merchants)
-        self.curr_transaction_amount = self.random_state.uniform(0, 1, 1)[0]
+        # randomly pick a transaction amount
+        self.curr_transaction_amount = self.model.random_state.uniform(0, 1, 1)[0]
+
+        # do the transaction
         success = self.model.process_transaction(client=self, amount=self.curr_transaction_amount, merchant=self.curr_merchant)
         if success:
             self.num_successful_transactions += 1
@@ -53,7 +43,7 @@ class Fraudster(Agent):
         """
         self.curr_auth_step += 1
         if self.curr_auth_step == 1:
-            auth_quality = self.random_state.uniform(0, 1, 1)[0]
+            auth_quality = self.model.random_state.uniform(0, 1, 1)[0]
         else:
             # cancel the transaction
             auth_quality = None
@@ -65,3 +55,9 @@ class Fraudster(Agent):
         # currency_fracts = self.model.parameters["currency prob fraud"]
         # return self.random_state.choice(currencies, p=currency_fracts)
         return 'USD'
+
+    def pick_country(self):
+        return 'India'
+
+    def pick_creditcard_number(self):
+        return self.unique_id

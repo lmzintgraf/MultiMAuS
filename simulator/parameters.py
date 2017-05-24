@@ -1,7 +1,7 @@
 from datetime import datetime
 from os.path import join
-
 import numpy as np
+from data import utils_data
 
 
 def get_default_parameters():
@@ -19,8 +19,8 @@ def get_default_parameters():
         "max authentication steps": 1,
 
         # number of customers and fraudsters at beginning of simulation
-        "num customers": 100,
-        "num fraudsters": 8,
+        "start num customers": 100,
+        "start num fraudsters": 8,
 
         # number of merchants at the beginning of simulation
         "num merchants": 28,
@@ -33,9 +33,9 @@ def get_default_parameters():
         'currencies': ['EUR', 'GBP', 'USD'],
 
         # transactions per hour of day
-        # 'transactions per hour': np.load(join(path_agg_data, 'trans_per_hour.npy')),
+        'frac trans per hour': np.load(join(utils_data.FOLDER_SIMULATOR_INPUT, 'frac_trans_per_hour.npy')),
         # transactions per month in year
-        # 'transactions per month': np.load(join(path_agg_data, 'trans_per_month.npy')),
+        'mean trans per month': np.load(join(utils_data.FOLDER_SIMULATOR_INPUT, 'mean_trans_per_month.npy')),
 
         # # countries
         # "country prob": pandas.read_csv('./data/aggregated/country_trans_prob.csv'),

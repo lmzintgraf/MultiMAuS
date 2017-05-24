@@ -14,7 +14,7 @@ def run_single():
         model.step()
 
     # get the collected data
-    agent_vars = model.datacollector.get_agent_vars_dataframe()
+    agent_vars = model.log_collector.get_agent_vars_dataframe()
     agent_vars.index = agent_vars.index.droplevel(1)
     print("\nagent vars:")
     print(agent_vars.head())

@@ -3,43 +3,37 @@ import numpy as np
 from data import utils_data
 
 
-def aggregate(data_source):
+def generate_simulator_input():
     """
     :param data_source:    str, 'real', or 'simulator'
     :return: 
     """
 
-    if data_source == 'real':
-        path_folder = utils_data.FOLDER_REAL_AGG
-    elif data_source == 'simulator':
-        path_folder = utils_data.FOLDER_SIMULATOR_AGG
-    else:
-        raise KeyError('data_source unknown, choose real or simulator')
-
     # load data
-    dataset01, dataset0, dataset1 = utils_data.get_dataset(data_source)
+    dataset01, dataset0, dataset1 = utils_data.get_dataset('real')
 
-    data_stats = utils_data.get_data_stats(data_source)
-    data_stats.to_csv(join(utils_data.get_folder_input_agg(), 'aggregated_data.csv'))
+    # save some aggregated info about the data
+    data_stats = utils_data.get_data_stats('real')
+    data_stats.to_csv(join(utils_data.FOLDER_SIMULATOR_INPUT, 'aggregated_data.csv'))
 
-    # transactions per hour of day
-    trans_per_hour0 = dataset0["Date"].apply(lambda date: date.hour).value_counts(sort=False)
-    trans_per_hour1 = dataset1["Date"].apply(lambda date: date.hour).value_counts(sort=False)
-    trans_per_hour = np.zeros((24, 2))
-    trans_per_hour[trans_per_hour0.index, 0] = trans_per_hour0
-    trans_per_hour[trans_per_hour1.index, 1] = trans_per_hour1
-    trans_per_hour /= np.sum(trans_per_hour, axis=0)
-    np.save(join(path_folder, 'trans_per_hour'), trans_per_hour)
+    # for each hour of the day, get the mean number of transactions
+    hour_count_stats = np.zeros((24, 2))
+    idx = 0
+    for d in [dataset0, dataset1]:
+        hour_counts = d["Date"].apply(lambda x: x.hour).value_counts(sort=False)
+        hour_counts /= np.sum(hour_counts)
+        hour_count_stats[hour_counts.index, idx] = hour_counts
+        idx += 1
+    np.save(join(utils_data.FOLDER_SIMULATOR_INPUT, 'frac_trans_per_hour'), hour_count_stats)
 
-    # transactions per month
-    trans_per_month0 = dataset0["Date"].apply(lambda date: date.month).value_counts(sort=False)
-    trans_per_month1 = dataset1["Date"].apply(lambda date: date.month).value_counts(sort=False)
-    trans_per_month = np.zeros((12, 2))
-    trans_per_month[trans_per_month0.index-1, 0] = trans_per_month0
-    trans_per_month[trans_per_month1.index-1, 1] = trans_per_month1
-    trans_per_month /= np.sum(trans_per_month, axis=0)
-    np.save(join(path_folder, 'trans_per_month'), trans_per_month)
-
+    # for each month of the year, get the fraction of transactions
+    month_count_stats = np.zeros((12, 2))
+    idx = 0
+    for d in [dataset0, dataset1]:
+        month_counts = d["Date"].apply(lambda x: x.month).value_counts(sort=False)
+        month_count_stats[month_counts.index-1, idx] = month_counts
+        idx += 1
+    np.save(join(utils_data.FOLDER_SIMULATOR_INPUT, 'mean_trans_per_month'), month_count_stats)
 
 
 # data_stats_cols = ['ALL', 'NON-FRAUD', 'FRAUD']
@@ -323,7 +317,4 @@ def aggregate(data_source):
 if __name__ == '__main__':
 
     # aggregate the data for the real (private) dataset
-    aggregate('real')
-
-    # aggregate the data for the simulation logs
-    aggregate('simulator')
+    generate_simulator_input()

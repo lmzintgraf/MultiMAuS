@@ -1,14 +1,14 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from os.path import join
+from os.path import join, dirname
 
-FOLDER_REAL_LOG = 'data/real_data'
-FOLDER_REAL_AGG = 'data/real_agg'
-FOLDER_SIMULATOR_LOG = 'data/simulator_log'
-FOLDER_SIMULATOR_AGG = 'data/simulator_agg'
+FOLDER_REAL_DATA = join(dirname(__file__), 'real_data')
+FOLDER_SIMULATOR_INPUT = join(dirname(__file__), 'simulator_input')
+FOLDER_SIMULATOR_LOG = join(dirname(__file__), 'simulator_log')
 
-FILE_REAL_LOG = join(FOLDER_REAL_LOG, 'transaction_log.csv')
+FILE_ANONYMIZED_DATASET = join(FOLDER_REAL_DATA, 'anonymized_dataset.csv')
+FILE_REAL_LOG = join(FOLDER_REAL_DATA, 'transaction_log.csv')
 FILE_SIMULATOR_LOG = join(FOLDER_SIMULATOR_LOG, 'transaction_log.csv')
 
 
@@ -20,7 +20,7 @@ def get_dataset(data_source):
     """
 
     if data_source == 'real':
-        logs_folder = FOLDER_REAL_LOG
+        logs_folder = FOLDER_REAL_DATA
     elif data_source == 'simulator':
         logs_folder = FOLDER_SIMULATOR_LOG
     else:
@@ -52,6 +52,15 @@ def get_data_stats(data_source):
 
     data_stats.loc['transactions'] = [d.shape[0] for d in datasets]
 
+    data_stats.loc['transactions/hour'] = [round(d['Date'].apply(lambda x: x.hour).value_counts().sum()/24/365,
+                                                 2) for d in datasets]
+    data_stats.loc['transactions/day'] = [round(d['Date'].apply(lambda x: x.day).value_counts().sum() / 365,
+                                                 2) for d in datasets]
+    data_stats.loc['transactions/week'] = [round(d['Date'].apply(lambda x: x.week).value_counts().sum() / 52,
+                                                2) for d in datasets]
+    data_stats.loc['transactions/month'] = [round(d['Date'].apply(lambda x: x.month).value_counts().sum() / 12,
+                                                2) for d in datasets]
+
     data_stats.loc['cards'] = [len(d["CardID"].unique()) for d in datasets]
     data_stats.loc['cards, single use'] = [sum(d["CardID"].value_counts() == 1) for d in datasets]
     data_stats.loc['cards, multi use'] = [sum(d["CardID"].value_counts() > 1) for d in datasets]
@@ -75,7 +84,10 @@ def get_data_stats(data_source):
     return data_stats
 
 
-def get_transaction_prob(col_name, d01, d0, d1):
+def get_num_trans_per_hour():
+    return np.load(join(FOLDER_SIMULATOR_INPUT, 'num_trans_per_hour.npy'))
+
+
     """ calculate fractions of transactions for given column """
     num_trans = pd.DataFrame(0, index=d01[col_name].value_counts().index, columns=['all', 'non-fraud', 'fraud'])
     num_trans['all'] = d01[col_name].value_counts()
@@ -103,7 +115,7 @@ def get_transaction_dist(col_name):
     trans_count /= np.sum(trans_count.values, axis=0)
 
     # save
-    trans_count.to_csv(join(FOLDER_REAL_AGG, 'fract-dist.csv'.format(col_name)), index_label=False)
+    trans_count.to_csv(join(FOLDER_SIMULATOR_INPUT, 'fract-dist.csv'.format(col_name)), index_label=False)
 
     # print
     print(col_name)
@@ -122,7 +134,7 @@ def plot_hist_num_transactions(trans_frac, col_name):
         plt.ylabel('num transactions')
         if i == 2:
             plt.xlabel(col_name)
-    plt.savefig(join(FOLDER_REAL_AGG, '{}_num-trans_hist'.format(col_name)))
+    plt.savefig(join(FOLDER_SIMULATOR_INPUT, '{}_num-trans_hist'.format(col_name)))
     plt.close()
 
 
@@ -139,5 +151,9 @@ def plot_bar_trans_prob(trans_frac, col_name, file_name=None):
     plt.legend()
     if not file_name:
         file_name = col_name
-    plt.savefig(join(FOLDER_REAL_AGG, '{}_num-trans_bar'.format(file_name)))
+    plt.savefig(join(FOLDER_SIMULATOR_INPUT, '{}_num-trans_bar'.format(file_name)))
     plt.close()
+
+
+if __name__ == '__main__':
+    print(get_data_stats('simulator'))

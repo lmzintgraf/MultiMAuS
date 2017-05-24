@@ -1,14 +1,15 @@
+import numpy as np
 from datetime import timedelta
 
-import numpy as np
-from authenticator import Authenticator
-from customer import Customer
-from fraudster import Fraudster
 from mesa import Model
-from mesa.datacollection import DataCollector
 from mesa.time import RandomActivation
+from mesa.space import Grid
 
+from simulator.authenticator import Authenticator
+from simulator.customer import Customer
+from simulator.fraudster import Fraudster
 from simulator.merchant import Merchant
+from simulator.log_collector import LogCollector
 
 
 class TransactionModel(Model):
@@ -18,44 +19,30 @@ class TransactionModel(Model):
 
         # load parameters
         self.parameters = model_parameters
-
-        # set current datetime and termination status
+        self.random_state = np.random.RandomState(self.parameters["seed"])
         self.curr_datetime = self.parameters['start date']
         self.terminated = False
-
-        # set up a schedule
-        self.schedule = RandomActivation(self)
-
-        # random state to reproduce results
-        self.random_state = np.random.RandomState(self.parameters["seed"])
 
         # create the payment processing platform via which all transactions go
         self.authenticator = Authenticator(self, self.random_state, self.parameters["max authentication steps"])
 
-        # create merchants
+        # create merchants, customers and fraudsters
         self.merchants = [Merchant(i, self) for i in range(self.parameters["num merchants"])]
+        self.customers = [Customer(i, self) for i in range(self.parameters["start num customers"])]
+        self.fraudsters = [Fraudster(i, self) for i in range(self.parameters["start num fraudsters"])]
 
-        # create customers
-        self.customers = []
-        for i in range(self.parameters["num customers"]):
-            self.customers.append(Customer(i, self, self.random_state))
+        # TODO: social network between customers
+        # grid = Grid(10, 10, 5)
+        # grid.place_agent(self.customers[0], [0,1])
+        # grid.move_to_empty(self.customers[0])
 
-        # create fraudsters
-        self.fraudsters = []
-        for i in range(self.parameters["num fraudsters"]):
-            self.fraudsters.append(Fraudster(i, self, self.random_state))
+        # set up a schedule
+        self.schedule = RandomActivation(self)
+        a = [self.schedule.add(self.customers[i]) for i in range(len(self.customers))]
+        a = [self.schedule.add(self.fraudsters[i]) for i in range(len(self.fraudsters))]
 
-            # # Add the agent to a random grid cell
-            # x = random.randrange(self.grid.width)
-            # y = random.randrange(self.grid.height)
-            # self.grid.place_agent(a, (x, y))
-
-        # self.datacollector = DataCollector(
-        #     model_reporters={"Gini": compute_gini},
-        #     agent_reporters={"Wealth": lambda a: a.wealth})
-
-        # initialise a data collector
-        self.datacollector = DataCollector(
+        # create data collector for the transaction logs
+        self.log_collector = LogCollector(
             agent_reporters={"Date": lambda c: c.model.curr_datetime,
                              "CardID": lambda c: c.unique_id,
                              "MerchantID": lambda c: c.curr_merchant.unique_id,
@@ -66,20 +53,11 @@ class TransactionModel(Model):
 
     def step(self):
 
-        # pick the customers and agents that will make a transaction
-        for c in self.random_state.choice(self.customers, size=5):
-            self.schedule.add(c)
-        for f in self.random_state.choice(self.fraudsters, size=3):
-            self.schedule.add(f)
-
         # this calls the step function of each agent in the schedule (customer, fraudster)
         self.schedule.step()
 
         # write new transactions to log
-        self.datacollector.collect(self)
-
-        # remove agents from scheduler
-        self.schedule.agents = []
+        self.log_collector.collect(self)
 
         # update time
         self.curr_datetime += timedelta(hours=1)
