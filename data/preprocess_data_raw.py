@@ -35,12 +35,6 @@ del dataset["Last Name"]
 dataset = dataset.rename(columns={'Merchant': 'MerchantID', 'Card': 'CardID', 'date': 'Date', 'target': 'Target',
                                   'GeoCode': 'PurchaseCountry'})
 
-# convert Merchant, Card, FirstName, LastName, Email into integers
-le = preprocessing.LabelEncoder()
-dataset["MerchantID"] = le.fit_transform(dataset["MerchantID"])
-dataset["CardID"] = le.fit_transform(dataset["CardID"])
-dataset["Name"] = le.fit_transform(dataset["Name"])
-
 # convert dates into datetime format
 dataset["Date"] = dataset["Date"].apply(lambda date: datetime.strptime(date, '%Y-%m-%d %H:%M:%S'))
 
@@ -64,6 +58,44 @@ dataset["Amount"] = dataset.apply(lambda d: round(c.convert(d["Amount"], d["Curr
 # the data goes from 12.5.15 to 2.1.17
 # only three fraud cases are recorded in 2016, so we reduce to 01.01.16 - 31.12.16
 dataset = dataset[dataset['Date'].apply(lambda d: d.year) == 2016]
+
+# convert Merchant, Card, FirstName, LastName, Email into integers
+merchants = list(dataset["MerchantID"])
+cards = list(dataset["CardID"])
+names = list(dataset["Name"])
+
+merchants_map = {}
+cards_map = {}
+names_map = {}
+next_merchant_id = 0
+next_card_id = 0
+next_name_id = 0
+
+for i in range(len(merchants)):
+    merchant = merchants[i]
+
+    if merchant not in merchants_map:
+        # merchant not yet in map, new merchant ID
+        merchants_map[merchant] = next_merchant_id
+        next_merchant_id += 1
+
+    card = cards[i]
+
+    if card not in cards_map:
+        # card not yet in map, new card ID
+        cards_map[card] = next_card_id
+        next_card_id += 1
+
+    name = names[i]
+
+    if name not in names_map:
+        # merchant not yet in map, new name ID
+        names_map[name] = next_name_id
+        next_name_id += 1
+
+dataset["MerchantID"] = dataset["MerchantID"].map(merchants_map)
+dataset["CardID"] = dataset["CardID"].map(cards_map)
+dataset["Name"] = dataset["Name"].map(names_map)
 
 # compare number of unique credit cards to number of unique names
 print("num cards (all): ", dataset["CardID"].unique().shape[0])
