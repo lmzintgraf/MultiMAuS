@@ -3,6 +3,7 @@ import numpy as np
 from abc import abstractmethod
 from simulator import utils_simulator
 
+
 class AbstractCustomer(Agent):
     """ 
     Base class for customers, which can either be genuine or fraudulent.
@@ -10,7 +11,11 @@ class AbstractCustomer(Agent):
     def __init__(self, customer_id, transaction_model):
         super().__init__(customer_id, transaction_model)
 
+        # variable for whether a transaction is currently being processed
         self.active = False
+
+        # each customer has to say if it's a fraudster or not
+        self.fraudster = None
 
         # pick currency, country, card
         self.currency = self.pick_currency()
@@ -35,26 +40,28 @@ class AbstractCustomer(Agent):
             self.curr_transaction_amount = None
 
     def get_transaction_prob(self):
+        """
+        The transaction probability at a given point in time (one time step is one hour).
+        :return: 
+        """
+        # num_trans is the number of transactions the customer will make in this hour
+        # we assume that we have enough customers to model that each customer can make max 1 transaction per hour
+        curr_date = self.model.curr_datetime
+        std_transactions = self.model.parameters['std_transactions'][self.fraudster]
+        trans_prob = self.model.parameters['trans_per_year'][self.fraudster]
+        trans_prob += self.model.random_state.normal(0, std_transactions, 1)[0]
+        trans_prob /= (1-self.fraudster)*len(self.model.customers) + self.fraudster*len(self.model.fraudsters)
+        trans_prob *= self.model.parameters['frac_month'][curr_date.month - 1, self.fraudster]
+        trans_prob *= self.model.parameters['frac_monthday'][curr_date.day - 1, self.fraudster]
+        trans_prob *= 7 * self.model.parameters['frac_weekday'][curr_date.weekday(), self.fraudster]
+        trans_prob *= self.model.parameters['frac_hour'][curr_date.hour, self.fraudster]
 
-        frac_trans_per_hour = self.model.parameters['frac trans per hour'][self.model.curr_datetime.hour, self.fraudster]
-        frac_trans_per_hour += utils_simulator.rand_skew_norm(5, 0, self.model.random_state)
-        frac_trans_per_hour = np.max([frac_trans_per_hour, 0])
+        # this is to ensure that fraudsters also sometimes make transactions in Jan/Feb (it's 0 in the data)
+        prior_prob = self.model.parameters['trans_per_year'][self.fraudster] / 366 / 24
+        prior_prob /= (1-self.fraudster)*len(self.model.customers) + self.fraudster*len(self.model.fraudsters)
+        # prior_prob += self.model.random_state.normal(0, prior_prob/10, 1)[0]
 
-        mean_trans_per_month = self.model.parameters['mean trans per month'][self.model.curr_datetime.month - 1, self.fraudster]
-        mean_trans_per_month += utils_simulator.rand_skew_norm(5, 0, self.model.random_state)
-        mean_trans_per_month = np.max([mean_trans_per_month, 0])
-
-        # calculate total number of transaction at given moment
-        num_transactions_now = mean_trans_per_month / 31 * frac_trans_per_hour
-        num_transactions_now = int(round(num_transactions_now, 0))
-
-        # estimate the probability of this customer/fraudster making a transaction
-        if self.fraudster == 0:
-            transaction_prob = num_transactions_now / len(self.model.customers)
-        else:
-            transaction_prob = num_transactions_now / len(self.model.fraudsters)
-
-        return transaction_prob
+        return 0.9 * trans_prob + 0.1 * prior_prob
 
     @abstractmethod
     def start_transaction(self):

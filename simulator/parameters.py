@@ -2,6 +2,10 @@ from datetime import datetime
 from os.path import join
 import numpy as np
 from data import utils_data
+import pandas as pd
+
+aggregated_data = pd.read_csv(join(utils_data.FOLDER_SIMULATOR_INPUT, 'aggregated_data.csv'), index_col=0)
+trans_per_year = np.array(aggregated_data.loc['transactions'].values, dtype=np.float)[1:]
 
 
 def get_default_parameters():
@@ -19,8 +23,8 @@ def get_default_parameters():
         "max authentication steps": 1,
 
         # number of customers and fraudsters at beginning of simulation
-        "start num customers": 100,
-        "start num fraudsters": 8,
+        "start num customers": 200,
+        "start num fraudsters": 20,
 
         # number of merchants at the beginning of simulation
         "num merchants": 28,
@@ -32,10 +36,20 @@ def get_default_parameters():
         # currencies
         'currencies': ['EUR', 'GBP', 'USD'],
 
-        # transactions per hour of day
-        'frac trans per hour': np.load(join(utils_data.FOLDER_SIMULATOR_INPUT, 'frac_trans_per_hour.npy')),
-        # transactions per month in year
-        'mean trans per month': np.load(join(utils_data.FOLDER_SIMULATOR_INPUT, 'mean_trans_per_month.npy')),
+        # total number of transactions we want in one year
+        'trans_per_year': trans_per_year,
+
+        # standard deviation for total num transactions
+        'std_transactions': [trans_per_year[0]/10, trans_per_year[1]/10],
+
+        # transactions per day in a month
+        'frac_monthday': np.load(join(utils_data.FOLDER_SIMULATOR_INPUT, 'monthday_frac.npy')),
+        # transactions per day in a week
+        'frac_weekday': np.load(join(utils_data.FOLDER_SIMULATOR_INPUT, 'weekday_frac.npy')),
+        # transactions per month in a year
+        'frac_month': np.load(join(utils_data.FOLDER_SIMULATOR_INPUT, 'month_frac.npy')),
+        # transactions hour in a day
+        'frac_hour': np.load(join(utils_data.FOLDER_SIMULATOR_INPUT, 'hour_frac.npy')),
 
         # # countries
         # "country prob": pandas.read_csv('./data/aggregated/country_trans_prob.csv'),
