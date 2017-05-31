@@ -4,10 +4,7 @@ from simulator.abstract_customer import AbstractCustomer
 class Customer(AbstractCustomer):
     """ A customer that can make transactions """
     def __init__(self, customer_id, transaction_model):
-        super().__init__(customer_id, transaction_model)
-
-        # I am not a fraudster
-        self.fraudster = 0
+        super().__init__(customer_id, transaction_model, fraudster=0)
 
         # transaction frequency (avg. purchases per day)
         self.min_transaction_frequency = 1./365
@@ -29,7 +26,7 @@ class Customer(AbstractCustomer):
         :return: 
         """
         # randomly pick a merchant
-        self.curr_merchant = self.model.random_state.choice(self.model.merchants)
+        self.curr_merchant = self.pick_merchant()
 
         # randomly pick a transaction amount
         self.curr_transaction_amount = self.model.random_state.uniform(0, 1, 1)[0]
@@ -79,16 +76,6 @@ class Customer(AbstractCustomer):
         if avg_amount < self.min_average_amount:
             avg_amount = self.min_average_amount
         return avg_amount
-
-    def pick_currency(self):
-        """ Pick a currency, using the probabilities given in the model parameters """
-        # currencies = self.model.parameters["currencies"]
-        # currency_fracts = self.model.parameters["currency prob non-fraud"]
-        # return self.random_state.choice(currencies, p=currency_fracts)
-        return 'EUR'
-
-    def pick_country(self):
-        return 'India'
 
     def pick_creditcard_number(self):
         return self.unique_id

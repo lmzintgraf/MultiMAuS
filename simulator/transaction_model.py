@@ -27,7 +27,7 @@ class TransactionModel(Model):
         self.authenticator = Authenticator(self, self.random_state, self.parameters["max authentication steps"])
 
         # create merchants, customers and fraudsters
-        self.merchants = [Merchant(i, self) for i in range(self.parameters["num merchants"])]
+        self.merchants = self.instantiate_merchants()
         self.customers = [Customer(i, self) for i in range(self.parameters["start num customers"])]
         self.fraudsters = [Fraudster(i, self) for i in range(self.parameters["start num fraudsters"])]
 
@@ -72,3 +72,5 @@ class TransactionModel(Model):
         authorise = self.authenticator.authorise_payment(client, amount, merchant)
         return authorise
 
+    def instantiate_merchants(self):
+        return [Merchant(i, self) for i in range(self.parameters["num merchants"])]

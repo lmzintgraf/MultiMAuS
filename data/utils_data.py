@@ -1,11 +1,18 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from os.path import join, dirname
+from os.path import join, dirname, exists
+from os import makedirs
 
 FOLDER_REAL_DATA = join(dirname(__file__), 'real_data')
 FOLDER_SIMULATOR_INPUT = join(dirname(__file__), 'simulator_input')
 FOLDER_SIMULATOR_LOG = join(dirname(__file__), 'simulator_log')
+FOLDER_REAL_DATA_ANALYSIS = join(FOLDER_REAL_DATA, 'analysis')
+
+# create the above folders if they don't exist yet
+for folder in [FOLDER_REAL_DATA, FOLDER_SIMULATOR_INPUT, FOLDER_SIMULATOR_LOG, FOLDER_REAL_DATA_ANALYSIS]:
+    if not exists(folder):
+        makedirs(folder)
 
 FILE_ANONYMIZED_DATASET = join(FOLDER_REAL_DATA, 'anonymized_dataset.csv')
 FILE_REAL_LOG = join(FOLDER_REAL_DATA, 'transaction_log.csv')
@@ -36,9 +43,9 @@ def get_dataset(data_source):
     dataset1 = dataset01[dataset01["Target"] == 1]
 
     # give the datasets names
-    dataset01.name = 'datasetAll'
-    dataset0.name = 'datasetGenuine'
-    dataset1.name = 'datasetFraud'
+    dataset01.name = 'all'
+    dataset0.name = 'non-fraud'
+    dataset1.name = 'fraud'
 
     return dataset01, dataset0, dataset1
 

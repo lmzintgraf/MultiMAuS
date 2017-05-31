@@ -8,18 +8,18 @@ class AbstractCustomer(Agent):
     """ 
     Base class for customers, which can either be genuine or fraudulent.
     """
-    def __init__(self, customer_id, transaction_model):
+    def __init__(self, customer_id, transaction_model, fraudster):
         super().__init__(customer_id, transaction_model)
 
         # variable for whether a transaction is currently being processed
         self.active = False
 
         # each customer has to say if it's a fraudster or not
-        self.fraudster = None
+        self.fraudster = fraudster
 
-        # pick currency, country, card
-        self.currency = self.pick_currency()
+        # pick country, currency, card
         self.country = self.pick_country()
+        self.currency = self.pick_currency()
         self.card = self.pick_creditcard_number()
 
         # fields for storing the current transaction properties
@@ -61,18 +61,30 @@ class AbstractCustomer(Agent):
         prior_prob /= (1-self.fraudster)*len(self.model.customers) + self.fraudster*len(self.model.fraudsters)
         # prior_prob += self.model.random_state.normal(0, prior_prob/10, 1)[0]
 
-        return 0.9 * trans_prob + 0.1 * prior_prob
+        return 0.8 * trans_prob + 0.2 * prior_prob
+
+    def pick_country(self):
+        country_frac = self.model.parameters['country_frac']
+        return self.model.random_state.choice(country_frac.index.values, p=country_frac.iloc[:, self.fraudster].values)
+
+    def pick_currency(self):
+        currency_prob = self.model.parameters['currency_per_country'][self.fraudster]
+        currency_prob = currency_prob.loc[self.country]
+        return self.model.random_state.choice(currency_prob.index.values, p=currency_prob.values.flatten())
+
+    def pick_merchant(self):
+        """
+        Can be called at each transaction; will select a merchant to buy from.
+        :return:    merchant ID
+        """
+        all_merchant_IDs = [m.unique_id for m in self.model.merchants]
+        merchant_prob = self.model.parameters['merchant_per_currency'][self.fraudster]
+        merchant_prob = merchant_prob.loc[self.currency]
+        merchant_ID = self.model.random_state.choice(merchant_prob.index.values, p=merchant_prob.values.flatten())
+        return [m for m in self.model.merchants if m.unique_id == merchant_ID][0]
 
     @abstractmethod
     def start_transaction(self):
-        return
-
-    @abstractmethod
-    def pick_currency(self):
-        return
-
-    @abstractmethod
-    def pick_country(self):
         return
 
     @abstractmethod

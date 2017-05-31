@@ -4,10 +4,10 @@ from simulator.abstract_customer import AbstractCustomer
 class Fraudster(AbstractCustomer):
     """ A customer that can make transactions """
     def __init__(self, fraudster_id, transaction_model):
-        super().__init__(fraudster_id, transaction_model)
+        super().__init__(fraudster_id, transaction_model, fraudster=1)
 
-        # I am a fraudster
-        self.fraudster = 1
+        # Fraudster's country (i.e., where card was issued)
+        self.country = self.pick_country()
 
         # there's always at least one authentication step
         self.curr_auth_step = 1
@@ -48,16 +48,6 @@ class Fraudster(AbstractCustomer):
             # cancel the transaction
             auth_quality = None
         return auth_quality
-
-    def pick_currency(self):
-        """ Pick a currency, using the probabilities given in the model parameters """
-        # currencies = self.model.parameters["currencies"]
-        # currency_fracts = self.model.parameters["currency prob fraud"]
-        # return self.random_state.choice(currencies, p=currency_fracts)
-        return 'USD'
-
-    def pick_country(self):
-        return 'India'
 
     def pick_creditcard_number(self):
         return self.unique_id

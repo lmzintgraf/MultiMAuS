@@ -15,6 +15,9 @@ def get_default_parameters():
         # seed for random number generator of current simulation
         "seed": 666,
 
+        # noise level of the entire simulation, between 0 and 1
+        'noise level': 0.1,
+
         # start and end date of simulation
         'start date': datetime(2016, 1, 1),
         'end date': datetime(2016, 12, 31),
@@ -27,7 +30,7 @@ def get_default_parameters():
         "start num fraudsters": 20,
 
         # number of merchants at the beginning of simulation
-        "num merchants": 28,
+        "num merchants": int(aggregated_data.loc['num merchants', 'all']),
 
         # amount range (in Euros)
         "min amount": 0.01,
@@ -51,10 +54,17 @@ def get_default_parameters():
         # transactions hour in a day
         'frac_hour': np.load(join(utils_data.FOLDER_SIMULATOR_INPUT, 'hour_frac.npy')),
 
-        # # countries
-        # "country prob": pandas.read_csv('./data/aggregated/country_trans_prob.csv'),
-        # # currencies per country
-        # "currency prob per country": pandas.read_csv('./data/aggregated/currency_trans_prob_per_country.csv')
+        # countries
+        "country_frac": pd.read_csv(join(utils_data.FOLDER_SIMULATOR_INPUT, 'country_frac.csv'), index_col=0),
+        # currencies per country
+        "currency_per_country": [pd.read_csv(join(utils_data.FOLDER_SIMULATOR_INPUT, 'currency_per_country0.csv'), index_col=[0, 1]),
+                                 pd.read_csv(join(utils_data.FOLDER_SIMULATOR_INPUT, 'currency_per_country1.csv'),index_col=[0, 1])],
+
+        # merchant per currency
+        "merchant_per_currency": [
+            pd.read_csv(join(utils_data.FOLDER_SIMULATOR_INPUT, 'merchant_per_currency0.csv'), index_col=[0, 1], header=None),
+            pd.read_csv(join(utils_data.FOLDER_SIMULATOR_INPUT, 'merchant_per_currency1.csv'), index_col=[0, 1], header=None)]
+
 
         # date
 

@@ -9,8 +9,5 @@ class Merchant(Agent):
     def __init__(self, merchant_id, transaction_model):
         super().__init__(merchant_id, transaction_model)
 
-
-# TO DO
-# - for each merchant, plot the average amount
-# - for each client with more than X transactions, plot the average amount
-# - plot country distribution
+    def get_amount(self):
+        return self.model.random_state.uniform(0, 1, 1)[0]
