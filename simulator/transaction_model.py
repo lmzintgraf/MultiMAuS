@@ -33,8 +33,6 @@ class TransactionModel(Model):
 
         self.customers = [Customer(i, self) for i in range(self.parameters["start num customers"])]
         self.customer_count = len(self.customers)
-        self.customers_that_left = 0
-        self.customers_that_came = 0
 
         self.fraudsters = [Fraudster(i, self) for i in range(self.parameters["start num fraudsters"])]
         self.fraudster_count = len(self.fraudsters)
