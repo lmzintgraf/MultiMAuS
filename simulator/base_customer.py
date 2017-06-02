@@ -1,10 +1,7 @@
 from mesa import Agent
-import numpy as np
-from abc import abstractmethod
-from simulator import utils_simulator
 
 
-class AbstractCustomer(Agent):
+class BaseCustomer(Agent):
     """ 
     Base class for customers, which can either be genuine or fraudulent.
     """
@@ -25,6 +22,13 @@ class AbstractCustomer(Agent):
         # fields for storing the current transaction properties
         self.curr_merchant = None
         self.curr_transaction_amount = None
+
+        # fields to collect some statistics
+        self.num_successful_transactions = 0
+        self.num_cancelled_transactions = 0
+
+        # current authentication step
+        self.curr_auth_step = 1
 
     def step(self):
         """ 
@@ -77,17 +81,28 @@ class AbstractCustomer(Agent):
         Can be called at each transaction; will select a merchant to buy from.
         :return:    merchant ID
         """
-        all_merchant_IDs = [m.unique_id for m in self.model.merchants]
         merchant_prob = self.model.parameters['merchant_per_currency'][self.fraudster]
         merchant_prob = merchant_prob.loc[self.currency]
         merchant_ID = self.model.random_state.choice(merchant_prob.index.values, p=merchant_prob.values.flatten())
         return [m for m in self.model.merchants if m.unique_id == merchant_ID][0]
 
-    @abstractmethod
     def start_transaction(self):
-        return
+        """
+        Make a transaction.
+        :return: 
+        """
+        # randomly pick a merchant
+        self.curr_merchant = self.pick_merchant()
 
-    @abstractmethod
+        # randomly pick a transaction amount
+        self.curr_transaction_amount = self.curr_merchant.get_amount(self.fraudster)
+
+        # make the transaction
+        success = self.model.process_transaction(client=self, amount=self.curr_transaction_amount, merchant=self.curr_merchant)
+        if success:
+            self.num_successful_transactions += 1
+        else:
+            self.num_cancelled_transactions += 1
+
     def pick_creditcard_number(self):
-        return
-
+        return self.unique_id

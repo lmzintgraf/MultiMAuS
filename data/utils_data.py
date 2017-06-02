@@ -91,20 +91,6 @@ def get_data_stats(data_source):
     return data_stats
 
 
-def get_num_trans_per_hour():
-    return np.load(join(FOLDER_SIMULATOR_INPUT, 'num_trans_per_hour.npy'))
-
-
-    """ calculate fractions of transactions for given column """
-    num_trans = pd.DataFrame(0, index=d01[col_name].value_counts().index, columns=['all', 'non-fraud', 'fraud'])
-    num_trans['all'] = d01[col_name].value_counts()
-    num_trans['non-fraud'] = d0[col_name].value_counts()
-    num_trans['fraud'] = d1[col_name].value_counts()
-    num_trans = num_trans.fillna(0)
-    num_trans /= np.sum(num_trans, axis=0)
-    return num_trans
-
-
 def get_grouped_prob(group_by, col_name):
     grouped_prob = get_dataset()[0].groupby([group_by, col_name]).size()
     grouped_prob = grouped_prob.groupby(level=0).apply(lambda x: x / sum(x))
