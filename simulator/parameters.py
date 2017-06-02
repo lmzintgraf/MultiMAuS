@@ -26,18 +26,11 @@ def get_default_parameters():
         "max authentication steps": 1,
 
         # number of customers and fraudsters at beginning of simulation
-        "start num customers": 200,
-        "start num fraudsters": 20,
+        "start num customers": 10,
+        "start num fraudsters": 10,
 
         # number of merchants at the beginning of simulation
         "num merchants": int(aggregated_data.loc['num merchants', 'all']),
-
-        # amount range (in Euros)
-        "min amount": 0.01,
-        "max amount": 10500,
-
-        # currencies
-        'currencies': ['EUR', 'GBP', 'USD'],
 
         # total number of transactions we want in one year
         'trans_per_year': trans_per_year,
@@ -57,18 +50,20 @@ def get_default_parameters():
         # countries
         "country_frac": pd.read_csv(join(utils_data.FOLDER_SIMULATOR_INPUT, 'country_frac.csv'), index_col=0),
         # currencies per country
-        "currency_per_country": [pd.read_csv(join(utils_data.FOLDER_SIMULATOR_INPUT, 'currency_per_country0.csv'), index_col=[0, 1]),
-                                 pd.read_csv(join(utils_data.FOLDER_SIMULATOR_INPUT, 'currency_per_country1.csv'),index_col=[0, 1])],
+        "currency_per_country": [pd.read_csv(join(utils_data.FOLDER_SIMULATOR_INPUT, 'currency_per_country0.csv'), index_col=[0, 1], header=None),
+                                 pd.read_csv(join(utils_data.FOLDER_SIMULATOR_INPUT, 'currency_per_country1.csv'), index_col=[0, 1], header=None)],
 
         # merchant per currency
         "merchant_per_currency": [
             pd.read_csv(join(utils_data.FOLDER_SIMULATOR_INPUT, 'merchant_per_currency0.csv'), index_col=[0, 1], header=None),
-            pd.read_csv(join(utils_data.FOLDER_SIMULATOR_INPUT, 'merchant_per_currency1.csv'), index_col=[0, 1], header=None)]
+            pd.read_csv(join(utils_data.FOLDER_SIMULATOR_INPUT, 'merchant_per_currency1.csv'), index_col=[0, 1], header=None)],
 
+        # amount per merchant
+        'merchant_amount_parameters': np.load(join(utils_data.FOLDER_SIMULATOR_INPUT, 'merchant_amount_parameters.npy')),
 
-        # date
+        # probability of doing another transaction
+        'stay_prob': np.load(join(utils_data.FOLDER_SIMULATOR_INPUT, 'prob_stay.npy'))
 
-        # countries
     }
 
     return params
