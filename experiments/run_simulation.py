@@ -1,9 +1,12 @@
 from data import utils_data
 from simulator import parameters
 from simulator.transaction_model import TransactionModel
+import time
 
 
 def run_single():
+
+    start_time = time.time()
 
     # initialise the model with some parameters
     params = parameters.get_default_parameters()
@@ -22,6 +25,7 @@ def run_single():
 
     agent_vars.to_csv(utils_data.FILE_SIMULATOR_LOG, index_label=False)
 
+    print(time.time() - start_time)
 
 if __name__ == '__main__':
 
