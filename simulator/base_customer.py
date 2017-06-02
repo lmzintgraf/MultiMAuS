@@ -30,6 +30,9 @@ class BaseCustomer(Agent):
         # current authentication step
         self.curr_auth_step = 1
 
+        # variable tells us whether the customer wants to stay
+        self.stay = True
+
     def step(self):
         """ 
         This is called in each simulation step (i.e., one hour).
@@ -38,6 +41,7 @@ class BaseCustomer(Agent):
         if self.get_transaction_prob() > self.model.random_state.uniform(0, 1, 1)[0]:
             self.active = True
             self.start_transaction()
+            self.decide_staying()
         else:
             self.active = False
             self.curr_merchant = None
@@ -106,3 +110,8 @@ class BaseCustomer(Agent):
 
     def pick_creditcard_number(self):
         return self.unique_id
+
+    def decide_staying(self):
+        leave_prob = 1 - self.model.parameters['stay_prob'][self.fraudster]
+        if leave_prob > self.model.random_state.uniform(0, 1, 1)[0]:
+            self.stay = False
