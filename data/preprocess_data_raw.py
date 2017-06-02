@@ -13,18 +13,23 @@ import numpy as np
 import pandas
 from currency_converter import CurrencyConverter
 from pytz import timezone, country_timezones
-from sklearn import preprocessing
 from data import utils_data
 
 dataset = pandas.read_csv(utils_data.FILE_ANONYMIZED_DATASET)
-print(dataset.head())
-print("")
+print("head of original data: ")
+print(dataset.head(), '\n')
 
 # throw away the columns we don't use
 del dataset["Unnamed: 0"]   # this is just an arbitrary index
 del dataset["id"]           # because I don't know what this is
 del dataset["AccountID"]    # because I don't know what this is
 del dataset["Email"]        # not relevant
+
+# remove merchants with less than 100 transactions
+small_merchants = dataset['Merchant'].value_counts() < 100
+small_merchants = small_merchants.index.values[small_merchants.values]
+for m in small_merchants:
+    dataset = dataset.loc[dataset['Merchant'] != m]
 
 # merge first and last name
 dataset["Name"] = dataset["First Name"].map(str) + dataset["Last Name"]
@@ -71,7 +76,7 @@ next_merchant_id = 0
 next_card_id = 0
 next_name_id = 0
 
-for i in range(len(merchants)):
+for i in range(dataset.shape[0]):
     merchant = merchants[i]
 
     if merchant not in merchants_map:
