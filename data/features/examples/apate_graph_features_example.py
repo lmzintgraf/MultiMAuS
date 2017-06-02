@@ -9,31 +9,61 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn import linear_model
 
-NUM_TRAINING_INSTANCES = 50000        # 50K for training should be fine
-
 def run_test():
+    # specify filepath here to load complete dataset from (training + test data)
+    DATA_FILEPATH = '../../real_data/transaction_log.csv'
+
+    # number of entries that will be used for feature learning (convergence procedure on network)
+    NUM_FEATURE_LEARNING_INSTANCES = 25000
+
+    # number of entries that will be used for training Machine Learning model (augmented with extra features)
+    NUM_MODEL_LEARNING_INSTANCES = 25000
+
     # load dataframe
-    df = pd.read_csv('../../real_data/transaction_log.csv')
+    df = pd.read_csv(DATA_FILEPATH)
+
+    # convert date column to proper type
     df["Date"] = pd.to_datetime(df["Date"])
 
-    df_train = df.iloc[:NUM_TRAINING_INSTANCES]
-    df_test = df.iloc[NUM_TRAINING_INSTANCES:]
+    # extract part of data to use for learning features
+    df_feature_learning = df.iloc[:NUM_FEATURE_LEARNING_INSTANCES]
+
+    # extract part of data to use for learning ML model
+    df_model_learning = df.iloc[
+                        NUM_FEATURE_LEARNING_INSTANCES:(NUM_FEATURE_LEARNING_INSTANCES+NUM_MODEL_LEARNING_INSTANCES)]
+
+    # extract part of data for testing (evaluating performance of trained model)
+    df_test = df.iloc[(NUM_FEATURE_LEARNING_INSTANCES+NUM_MODEL_LEARNING_INSTANCES):]
+
+    # set the complete dataset to None so we don't accidentally use it anywhere below
     df = None
 
-    graph_features = ApateGraphFeatures(df_train)
-    graph_features.add_graph_features(df_train)
+    # construct network and run convergence procedure on the feature learning dataset
+    graph_features = ApateGraphFeatures(df_feature_learning)
+
+    # augment our model learning dataset with extra features
+    graph_features.add_graph_features(df_model_learning)
+
+    # augment our test dataset with extra features
     graph_features.add_graph_features(df_test)
 
-    df_train = df_train.drop(["Date", "CardID", "MerchantID", "Currency", "Country"], 1)
+    # remove features which we no longer want to use in machine learning
+    df_model_learning = df_model_learning.drop(["Date", "CardID", "MerchantID", "Currency", "Country"], 1)
     df_test = df_test.drop(["Date", "CardID", "MerchantID", "Currency", "Country"], 1)
 
-    training_labels = df_train["Target"].values
+    # extract the ground truth labels
+    training_labels = df_model_learning["Target"].values
     test_labels = df_test["Target"].values
-    df_train = df_train.drop(["Target"], 1)
+
+    # remove ground truth labels from datasets, don't want to allow ML models to cheat by using them
+    df_model_learning = df_model_learning.drop(["Target"], 1)
     df_test = df_test.drop(["Target"], 1)
 
+    # construct a simple ML model for testing
     logreg = linear_model.LogisticRegression(solver='lbfgs', multi_class='multinomial', class_weight='balanced')
-    logreg.fit(df_train, training_labels)
+
+    # train the model
+    logreg.fit(df_model_learning, training_labels)
 
     accuracy = logreg.score(df_test, test_labels)
     print("accuracy = ", accuracy)
