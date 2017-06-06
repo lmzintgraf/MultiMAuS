@@ -6,14 +6,14 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
     def __init__(self, customer_id, transaction_model, fraudster):
         """
         Abstract class for customers, which can either be genuine or fraudulent.
-        :param customer_id: 
-        :param transaction_model: 
-        :param fraudster:                   whether customer is genuine (0) or fraudulent (1)
+        :param customer_id:         the (unique) customer ID
+        :param transaction_model:   the transaction model that is used, instance of mesa.Model
+        :param fraudster:           boolean whether customer is genuine or fraudulent
         """
         super().__init__(customer_id, transaction_model)
 
         # each customer has to say if it's a fraudster or not
-        self.fraudster = fraudster
+        self.fraudster = int(fraudster)
 
         # variable for whether a transaction is currently being processed
         self.active = False
@@ -38,7 +38,7 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
         if self.decide_making_transaction():
             self.active = True
             self.make_transaction()
-            self.stay = self.decide_staying_customer()
+            self.stay = self.stay_customer()
         else:
             self.active = False
             self.curr_merchant = None
@@ -85,7 +85,7 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def decide_staying_customer(self):
+    def stay_customer(self):
         """ 
         At a given point in time, decide whether or not to make another transaction in the future.
         :return:    Boolean indicating whether to make another transaction (stay=True) or not
