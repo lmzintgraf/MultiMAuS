@@ -2,8 +2,8 @@ from mesa import Agent
 import numpy as np
 
 
-def sigmoid(x, max_amount, x0, k):
-    y = max_amount / (1 + np.exp(-k * (x - x0)))
+def sigmoid(x, min_amount, max_amount, x0, k):
+    y = max_amount / (1 + np.exp(-k * (x - x0))) + min_amount
     return y
 
 
