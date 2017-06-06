@@ -1,4 +1,4 @@
-from simulator.abstract_customer import AbstractCustomer
+from simulator.customer_abstract import AbstractCustomer
 import numpy as np
 
 
@@ -47,8 +47,7 @@ class UniMausCustomer(AbstractCustomer):
 
         # now weigh this according to the customer's intrinsic transaction incentive
         # the incentive [0,1] to make a transaction (can change over time)
-        self.trans_incentive = 1/10  # TODO
-        prior_prob *= self.trans_incentive
+        prior_prob /= [len(self.model.customers), len(self.model.fraudsters)][self.fraudster]
 
         # now weigh by probabilities of transactions per month/week/...
         # (did it like this so we can easily comment stuff out)
@@ -81,7 +80,17 @@ class UniMausCustomer(AbstractCustomer):
 
     def stay_customer(self):
         stay_prob = self.model.parameters['stay_prob'][self.fraudster]
-        if stay_prob < self.model.random_state.uniform(0, 1, 1)[0]:
+        if stay_prob > self.model.random_state.uniform(0, 1, 1)[0]:
             return True
         else:
             return False
+
+
+class Customer(UniMausCustomer):
+    def __init__(self, customer_id, transaction_model):
+        super().__init__(customer_id, transaction_model, fraudster=False)
+
+
+class Fraudster(UniMausCustomer):
+    def __init__(self, customer_id, transaction_model):
+        super().__init__(customer_id, transaction_model, fraudster=True)
