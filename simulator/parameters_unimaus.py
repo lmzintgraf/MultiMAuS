@@ -62,7 +62,6 @@ def get_default_parameters():
 
         # probability of doing another transaction
         'stay_prob': np.load(join(utils_data.FOLDER_SIMULATOR_INPUT, 'prob_stay.npy'))
-
     }
 
     return params
