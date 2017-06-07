@@ -13,7 +13,7 @@ def get_default_parameters():
     params = {
 
         # seed for random number generator of current simulation
-        'seed': 13,
+        'seed': 12345,
 
         # noise level of the entire simulation, between 0 and 1
         'noise_level': 0,
@@ -28,8 +28,8 @@ def get_default_parameters():
         # number of customers and fraudsters at beginning of simulation
         # (note that this doesn't really influence the total amount of transactions;
         #  for that change the probability of making transactions)
-        'num_customers': 100,
-        'num_fraudsters': 10,
+        'num_customers': 3333,
+        'num_fraudsters': 55,
 
         # number of merchants at the beginning of simulation
         'num merchants': int(aggregated_data.loc['num merchants', 'all']),
