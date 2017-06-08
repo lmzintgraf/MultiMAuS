@@ -28,8 +28,10 @@ def get_default_parameters():
         # number of customers and fraudsters at beginning of simulation
         # (note that this doesn't really influence the total amount of transactions;
         #  for that change the probability of making transactions)
-        'num_customers': 3333,
-        'num_fraudsters': 55,
+        'num_customers': 100,
+        # 'num_customers': 3333,
+        'num_fraudsters': 10,
+        # 'num_fraudsters': 55,
 
         # number of merchants at the beginning of simulation
         'num merchants': int(aggregated_data.loc['num merchants', 'all']),
