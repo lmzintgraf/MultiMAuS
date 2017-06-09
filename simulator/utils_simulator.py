@@ -14,9 +14,8 @@ def rand_skew_norm(fAlpha, fScale, random_state):
     # http://stackoverflow.com/questions/36200913/generate-n-random-numbers-from-a-skew-normal-distribution-using-numpy
     """
     Right-skewed normal distribution around zero
-    :param fAlpha: 
-    :param fLocation: 
-    :param fScale: 
+    :param fAlpha:      
+    :param fScale:      std
     :return: 
     """
 
@@ -39,9 +38,11 @@ def rand_skew_norm(fAlpha, fScale, random_state):
 if __name__ == '__main__':
 
     points = []
+    points2 = []
     random_state = np.random.RandomState(5)
-    for i in range(1000):
-        points.append(rand_skew_norm(5, 0.1, random_state))
+    for i in range(10000):
+        points.append(rand_skew_norm(25, 1, random_state)*90000)
+        # points2.append(80000*(rand_skew_norm(25, 1, random_state) + np.random.normal(0, 0.0001)))
 
     print(np.mean(points))
 
