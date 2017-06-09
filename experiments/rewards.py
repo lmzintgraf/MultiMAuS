@@ -1,3 +1,4 @@
+import numpy as np
 
 
 def get_reward(success, fraud, amount):
@@ -12,11 +13,12 @@ def get_reward(success, fraud, amount):
     :return: 
     """
 
-    success = int(success)
-    fraud = int(fraud)
+    success = np.array(success, dtype=float)
+    fraud = np.array(fraud, dtype=float)
+    amount = np.array(amount, dtype=float)
 
-    reward = success
-    reward *= fraud * (-amount)
-    reward *= (1 - fraud) * (0.25 * amount + 0.25)
+    reward = fraud * (-amount)
+    reward += (1 - fraud) * (0.025 * amount + 0.025)
+    reward *= success
 
     return reward
