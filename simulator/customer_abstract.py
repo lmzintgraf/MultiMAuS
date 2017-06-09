@@ -15,6 +15,12 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
         # each customer has to say if it's a fraudster or not
         self.fraudster = int(fraudster)
 
+        # whether or not card is corrupted (only important for genuine customers)
+        self.card_corrupted = False
+
+        # intrinsic motivation to make transaction
+        self.transaction_motivation = self.model.parameters['transaction_motivation'][self.fraudster]
+
         # variable for whether a transaction is currently being processed
         self.active = False
 
@@ -25,7 +31,7 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
 
         # fields for storing the current transaction properties
         self.curr_merchant = None
-        self.curr_transaction_amount = None
+        self.curr_amount = None
 
         # variable tells us whether the customer wants to stay after current transaction
         self.stay = True
@@ -38,11 +44,12 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
         if self.decide_making_transaction():
             self.active = True
             self.make_transaction()
-            self.stay = self.stay_customer()
+            self.update_transaction_stats()
+            self.stay_customer()
         else:
             self.active = False
             self.curr_merchant = None
-            self.curr_transaction_amount = None
+            self.curr_amount = None
 
     @abstractmethod
     def pick_country(self):
@@ -90,4 +97,7 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
         At a given point in time, decide whether or not to make another transaction in the future.
         :return:    Boolean indicating whether to make another transaction (stay=True) or not
         """
+        pass
+
+    def update_transaction_stats(self):
         pass
