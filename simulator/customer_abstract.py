@@ -3,31 +3,26 @@ from abc import ABCMeta, abstractmethod
 
 
 class AbstractCustomer(Agent,  metaclass=ABCMeta):
-    def __init__(self, customer_id, transaction_model, fraudster):
+    def __init__(self, unique_id, transaction_model, fraudster):
         """
         Abstract class for customers, which can either be genuine or fraudulent.
-        :param customer_id:         the (unique) customer ID
+        :param unique_id:           the (unique) customer ID
         :param transaction_model:   the transaction model that is used, instance of mesa.Model
         :param fraudster:           boolean whether customer is genuine or fraudulent
         """
-        super().__init__(customer_id, transaction_model)
+        # call super init from mesa agent
+        super().__init__(unique_id, transaction_model)
 
         # each customer has to say if it's a fraudster or not
         self.fraudster = int(fraudster)
 
-        # whether or not card is corrupted (only important for genuine customers)
-        self.card_corrupted = False
-
-        # intrinsic motivation to make transaction
-        self.transaction_motivation = self.model.parameters['transaction_motivation'][self.fraudster]
+        # pick country, currency, card
+        self.country = self.initialise_country()
+        self.currency = self.initialise_currency()
+        self.card_id = self.initialise_card_id()
 
         # variable for whether a transaction is currently being processed
         self.active = False
-
-        # pick country, currency, card
-        self.country = self.pick_country()
-        self.currency = self.pick_currency()
-        self.card = self.pick_creditcard_number()
 
         # fields for storing the current transaction properties
         self.curr_merchant = None
@@ -44,7 +39,6 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
         if self.decide_making_transaction():
             self.active = True
             self.make_transaction()
-            self.update_transaction_stats()
             self.stay_customer()
         else:
             self.active = False
@@ -52,7 +46,7 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
             self.curr_amount = None
 
     @abstractmethod
-    def pick_country(self):
+    def initialise_country(self):
         """
         Select country where customer's card was issued
         :return:    country
@@ -60,7 +54,7 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def pick_currency(self):
+    def initialise_currency(self):
         """
         Select currency in which customer makes transactions
         :return:    string
@@ -68,7 +62,7 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def pick_creditcard_number(self):
+    def initialise_card_id(self):
         """ 
         Select creditcard number (unique ID) for customer
         :return:    credit card number
@@ -97,7 +91,4 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
         At a given point in time, decide whether or not to make another transaction in the future.
         :return:    Boolean indicating whether to make another transaction (stay=True) or not
         """
-        pass
-
-    def update_transaction_stats(self):
         pass
