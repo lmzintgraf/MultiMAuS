@@ -40,7 +40,16 @@ night-time in the customer's country, not whether it's night-time in some random
 
 Including here some output of a run on my desktop in the previous version of the code (before I attempted implementing
 the binary-search optimization). May be useful to compare later on to the new implementation (once it actually works
-correctly), to see if it indeed speeds things up.
+correctly), to see if it indeed speeds things up:
+
+2017-06-13 11:06:31.233998 : Finished adding country-related features...
+2017-06-13 11:06:36.201568 : Finished adding Time Since First Order feature...
+2017-06-13 11:06:36.223638 : Added all-zero columns
+2017-06-13 11:21:24.403763 : Finished adding historical features
+2017-06-13 11:21:29.481382 : Finished adding country-related features...
+2017-06-13 11:21:32.439308 : Finished adding Time Since First Order feature...
+2017-06-13 11:21:32.459417 : Added all-zero columns
+2017-06-13 11:35:18.132286 : Finished adding historical features
 '''
 
 from datetime import datetime
