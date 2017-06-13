@@ -16,6 +16,34 @@ Implementation is partially based on https://github.com/kb211/Fraud_Detection201
 @author Dennis Soemers
 """
 
+# TODO
+'''
+WARNING:
+
+The current implementation of computing historical features actually doesn't work correctly. I attempted
+to speed up the code by using binary search to quickly find points in time within the dataset, and then
+immediately select all the data in between those timepoints, instead of having the pandas code comparing
+dates in every single row.
+
+This optimization is based on the idea that we can exploit knowledge of our data, in that we know it's
+supposed to be sorted by date. Unfortunately, it turns out.. it's actually not completely sorted by date.
+The data is correctly sorted by the Date column of the original data, but preprocess_data_raw.py transforms
+the Date column into one that contains the time in the Country where the transaction took place. This means
+that the Date column doesn't actually have the meaning we want it to have, and it's not perfectly sorted anymore.
+
+I think we'll want to change preprocess_data_raw.py to split up the Date column in two columns; one containing
+global timestamps, and one containing timestamps corresponding to the Country. The global timestamps column
+will be perfectly sorted, and that's the one we'd want to use to construct features such as ''how many transactions
+were done with the same Card ID within the previous hour''. The local timestamps would instead be useful for a
+feature such as ''is this a night-time transaction?'' (for that feature it's important to consider whether it's
+night-time in the customer's country, not whether it's night-time in some random other place in the world).
+
+Including here some output of a run on my desktop in the previous version of the code (before I attempted implementing
+the binary-search optimization). May be useful to compare later on to the new implementation (once it actually works
+correctly), to see if it indeed speeds things up.
+'''
+
+from datetime import datetime
 from datetime import timedelta
 import pandas as pd
 
@@ -88,7 +116,7 @@ class AggregateFeatures:
             lambda row: self.get_country_fraud_ratio(row=row), axis=1)
         data["CountrySufficientSampleSize"] = data.apply(
             lambda row: self.is_country_sample_size_sufficient(row=row), axis=1)
-        print("Finished adding country-related features...")
+        print(str(datetime.now()), ": Finished adding country-related features...")
 
         '''
         The following feature appears in Table 1 in [1], but has no explanation otherwise in the paper. Intuitively,
@@ -97,10 +125,10 @@ class AggregateFeatures:
         '''
         data["TimeSinceFirstOrder"] = data.apply(
             lambda row: self.get_time_since_first_order(row=row), axis=1)
-        print("Finished adding Time Since First Order feature...")
+        print(str(datetime.now()), ": Finished adding Time Since First Order feature...")
 
         data = self.add_historical_features(data, include_test_data_in_history)
-        print("Finished adding historical features")
+        print(str(datetime.now()), ": Finished adding historical features")
 
         return data
 
@@ -164,7 +192,7 @@ class AggregateFeatures:
                     else:
                         data[new_col_name] = 0.0
 
-        print("Added all-zero columns")
+        print(str(datetime.now()), ": Added all-zero columns")
 
         # now we have all the columns ready, and we can loop through rows, handling all features per row at once
         for row in data.itertuples():
@@ -175,17 +203,20 @@ class AggregateFeatures:
             row_card_id = row.CardID
 
             # select all training data with correct Card ID, and with a date earlier than row
-            matching_data = self.training_data.loc[
-                (self.training_data["CardID"] == row_card_id) &
-                (self.training_data["Date"] < row_date)
-            ]
+            matching_data = self.extract_transactions_before(self.training_data, row_date)
+
+            if matching_data is None:
+                continue
+
+            matching_data = matching_data.loc[(matching_data["CardID"] == row_card_id)]
 
             if include_test_data_in_history:
                 # also need to include parts of test data with earlier dates than the row we're adding features to
-                matching_data = pd.concat([matching_data, data.loc[
-                    (data["CardID"] == row_card_id) &
-                    (data["Date"] < row_date)
-                ]], axis=0, ignore_index=True)
+                matching_test_data = self.extract_transactions_before(data, row_date)
+
+                if matching_test_data is not None:
+                    matching_test_data = matching_test_data.loc[matching_test_data["CardID"] == row_card_id]
+                    matching_data = pd.concat([matching_data, matching_test_data], axis=0, ignore_index=True)
 
             # loop over our time-frames in reverse order, so that we can gradually cut out more and more data
             for time_frame_idx in range(len(time_frames) - 1, -1, -1):
@@ -193,7 +224,10 @@ class AggregateFeatures:
 
                 # reduce matching data to part that fits within this time frame
                 earliest_allowed_date = row_date - timedelta(hours=time_frame)
-                matching_data = matching_data.loc[matching_data["Date"] >= earliest_allowed_date]
+                matching_data = self.extract_transactions_after(matching_data, earliest_allowed_date)
+
+                if matching_data is None:
+                    break
 
                 # loop through our conditions
                 for condition in conditions:
@@ -205,7 +239,6 @@ class AggregateFeatures:
                     # loop through individual parts of the condition
                     for condition_term in condition:
                         row_condition_value = getattr(row, condition_term)
-                        #row_condition_value = row[condition_term]
                         conditional_matching_data = conditional_matching_data.loc[
                             conditional_matching_data[condition_term] == row_condition_value]
 
@@ -215,22 +248,6 @@ class AggregateFeatures:
                     # now the conditional_matching_data is all we want for two new features
                     data.set_value(row.Index, col_name_num, conditional_matching_data.shape[0])
                     data.set_value(row.Index, col_name_amt, conditional_matching_data["Amount"].sum())
-
-                    #data[row.Index, col_name_num] = conditional_matching_data.shape[0]
-                    #data[row.Index, col_name_amt] = conditional_matching_data["Amount"].sum()
-                    #row[str(col_name_num)] = conditional_matching_data.shape[0]
-                    #row[str(col_name_amt)] = conditional_matching_data["Amount"].sum()
-                    #setattr(row, col_name_num, conditional_matching_data.shape[0])
-                    #setattr(row, col_name_amt, conditional_matching_data["Amount"].sum())
-
-        # TODO
-        '''
-        Current implementation appears to be correct... but is slow. I suspect one major optimization would
-        be to manually do the date-based selection. We could make use of the fact that, if one row is too early
-        or too late, every row above or below it will also be too early or too late.
-
-        I suppose the outer loop could also be parallelized
-        '''
 
         return data
 
@@ -283,6 +300,101 @@ class AggregateFeatures:
                 fraud_transactions_dict[key] = 0
 
         return all_transactions_dict, fraud_transactions_dict
+
+    def extract_transactions_before(self, data, date):
+        """
+        Helper function which extracts all transactions from the given data which took place before
+        the given point in time. It assumes that the data is sorted by date (this assumption allows
+        for a much more efficient implementation)
+
+        :param data:
+            Data to extract transactions from
+        :param date:
+            We'll extract transactions that took place before this point in time
+        :return:
+            The extracted transactions
+        """
+        #print("")
+        #print("Want all transactions before ", str(date))
+
+        # we'll use binary search to find where a transaction at the given date should be inserted; then
+        # we can simply return all transactions up to that index
+        low = 0
+        high = data.shape[0] - 1
+
+        while low <= high:
+            mid = (low + high) // 2
+            mid_date = data.iloc[mid].Date
+
+            #print("Time at ", mid, " = ", str(mid_date))
+
+            if mid_date >= date:
+                high = mid - 1
+            else:
+                low = mid + 1
+
+        # ''low'' is now the leftmost index where we could insert the transaction at the given date without
+        # messing up the ordering.
+        if low > 0:
+            '''
+            if data.iloc[low].Date < date:
+                print("extract_transactions_before ERROR: should also have included ", low)
+
+            if data.iloc[low - 1].Date >= date:
+                print("extract_transactions_before ERROR: should not have included ", low)
+            '''
+
+            # return all data up to the low index (excluding low itself)
+            #print("Returning everything up to ", low)
+            return data.iloc[:low]
+        else:
+            # no data, so just return None
+            #print("Returning None")
+            return None
+
+    def extract_transactions_after(self, data, date):
+        """
+        Helper function which extracts all transactions from the given data which took place
+        after (or exactly at) the given point in time. It assumes that the data is sorted by
+        date (this assumption allows for a much more efficient implementation)
+
+        :param data:
+            Data to extract transactions from
+        :param date:
+            We'll extract transactions that took place after or at this point in time
+        :return:
+            The extracted transactions
+        """
+        # we'll use binary search to find where a transaction at the given date should be inserted; then
+        # we can simply return all transactions starting from that index
+        low = 0
+        high = data.shape[0] - 1
+
+        while low <= high:
+            mid = (low + high) // 2
+            mid_date = data.iloc[mid].Date
+
+            if mid_date >= date:
+                high = mid - 1
+            else:
+                low = mid + 1
+
+        # ''low'' is now the leftmost index where we could insert the transaction at the given date without
+        # messing up the ordering.
+        if low < data.shape[0]:
+            '''
+            if data.iloc[low].Date < date:
+                print("extract_transactions_after ERROR: should not have included ", low)
+
+            if low > 0 and data.iloc[low - 1].Date >= date:
+                print("extract_transactions_after ERROR: should also have included ", low - 1)
+            '''
+
+            # return all data starting from low
+            return data.iloc[low:]
+        else:
+            # no data, so just return None
+            return None
 
     def get_country_fraud_ratio(self, country="", row=None):
         """
