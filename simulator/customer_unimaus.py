@@ -1,5 +1,6 @@
 from simulator.customer_abstract import AbstractCustomer
 import numpy as np
+import string
 
 
 class UniMausCustomer(AbstractCustomer):
@@ -17,6 +18,9 @@ class UniMausCustomer(AbstractCustomer):
 
         # intrinsic motivation to make transaction
         self.transaction_motivation = self.model.parameters['transaction_motivation'][self.fraudster]
+
+        # convert country to integer
+        self.country_int = int(''.join([str(string.ascii_uppercase.index(c)) for c in self.country]))
 
     def initialise_country(self):
         country_frac = self.model.parameters['country_frac']
@@ -43,10 +47,12 @@ class UniMausCustomer(AbstractCustomer):
 
         # we start from the total number of transactions per year
         prior_prob = self.model.parameters['trans_per_year'][self.fraudster]
-        # # add some randomness
-        # random_addition = prior_prob * self.model.rand_factor_today
-        # if prior_prob + self.model.parameters['noise_level'] * random_addition > 0:
-        #     prior_prob += self.model.parameters['noise_level'] * random_addition
+
+        # add some randomness
+        rand_state_today = np.random.RandomState(self.model.today_int + self.country_int)
+        rand_addition = rand_state_today.normal(0, prior_prob/10, 1)[0]
+        if prior_prob + self.model.parameters['noise_level'] * rand_addition > 0:
+            prior_prob += self.model.parameters['noise_level'] * rand_addition
 
         # get the (uniform) transaction probability per hour
         prior_prob /= 365 * 24
