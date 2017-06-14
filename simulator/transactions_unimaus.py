@@ -57,12 +57,11 @@ class UniMausTransactionModel(Model):
 
     def step(self):
 
-        # add some noise to the
-        if self.parameters['noise_level'] > 0:
-            self.t_frac_month = self.parameters['frac_month'] + self.random_state.normal(0, 1./120, 1)[0]
-            self.t_frac_hour = self.parameters['frac_hour'] + self.random_state.normal(0, 1./240, 1)[0]
-            self.t_frac_monthday = self.parameters['frac_monthday'] + self.random_state.normal(0, 1./310, 1)[0]
-            self.t_frac_weekday = self.parameters['frac_weekday'] + + self.random_state.normal(0, 1./70, 1)[0]
+        # add some noise to the transaction probabilities
+        self.t_frac_month = self.parameters['frac_month'] + self.parameters['noise_level']*self.random_state.normal(0, 1./120, 1)[0]
+        self.t_frac_hour = self.parameters['frac_hour'] + self.parameters['noise_level']*self.random_state.normal(0, 1./240, 1)[0]
+        self.t_frac_monthday = self.parameters['frac_monthday'] + self.parameters['noise_level']*self.random_state.normal(0, 1./310, 1)[0]
+        self.t_frac_weekday = self.parameters['frac_weekday'] + self.parameters['noise_level']*self.random_state.normal(0, 1./70, 1)[0]
 
         # this calls the step function of each agent in the schedule (customer, fraudster)
         self.schedule.agents = []
