@@ -12,6 +12,9 @@ class UniMausCustomer(AbstractCustomer):
         """
         super().__init__(unique_id, transaction_model, fraudster)
 
+        # counter for number of transactions done
+        self.num_transactions = 0
+
         # intrinsic motivation to make transaction
         self.transaction_motivation = self.model.parameters['transaction_motivation'][self.fraudster]
 
@@ -35,16 +38,15 @@ class UniMausCustomer(AbstractCustomer):
         The transaction probability at a given point in time (one time step is one hour).
         :return: 
         """
-        # num_trans is the number of transactions the customer will make in this hour
-        # we assume that we have enough customers to model that each customer can make max 1 transaction per hour
-        curr_date = self.model.curr_datetime
+        # noise level
+        noise_level = self.model.parameters['noise_level']
 
         # we start from the total number of transactions per year
         prior_prob = self.model.parameters['trans_per_year'][self.fraudster]
-        # add some randomness
-        random_addition = prior_prob * self.model.rand_factor_today
-        if prior_prob + self.model.parameters['noise_level'] * random_addition > 0:
-            prior_prob += self.model.parameters['noise_level'] * random_addition
+        # # add some randomness
+        # random_addition = prior_prob * self.model.rand_factor_today
+        # if prior_prob + self.model.parameters['noise_level'] * random_addition > 0:
+        #     prior_prob += self.model.parameters['noise_level'] * random_addition
 
         # get the (uniform) transaction probability per hour
         prior_prob /= 365 * 24
@@ -54,13 +56,13 @@ class UniMausCustomer(AbstractCustomer):
 
         # now weigh by probabilities of transactions per month/week/...
         trans_prob = np.copy(prior_prob)
-        trans_prob *= 12 * self.model.t_frac_month[curr_date.month - 1, self.fraudster]
-        trans_prob *= 24 * self.model.t_frac_hour[curr_date.hour, self.fraudster]
-        trans_prob *= 30.5 * self.model.t_frac_monthday[curr_date.day - 1, self.fraudster]
-        trans_prob *= 7 * self.model.t_frac_weekday[curr_date.weekday(), self.fraudster]
+        trans_prob *= 12 * self.model.t_frac_month[self.curr_local_date.month - 1, self.fraudster]
+        trans_prob *= 24 * self.model.t_frac_hour[self.curr_local_date.hour, self.fraudster]
+        trans_prob *= 30.5 * self.model.t_frac_monthday[self.curr_local_date.day - 1, self.fraudster]
+        trans_prob *= 7 * self.model.t_frac_weekday[self.curr_local_date.weekday(), self.fraudster]
 
         # we use the 'prior' prob here because there was no fraud in jan/feb in the real data
-        return 0.9 * trans_prob + 0.1 * prior_prob
+        return (1 - noise_level) * trans_prob + noise_level * prior_prob
 
     def pick_merchant(self):
         """
@@ -74,16 +76,17 @@ class UniMausCustomer(AbstractCustomer):
 
     def make_transaction(self):
         """
-        Make a transaction.
+        Make a transaction. Called after customer decided to purchase something.
         :return: 
         """
         # pick merchant and transaction amount
         self.curr_merchant = self.pick_merchant()
         self.curr_amount = self.curr_merchant.get_amount(self)
+        self.num_transactions += 1
 
     def stay_customer(self):
-        stay_prob = self.model.parameters['stay_prob'][self.fraudster]
-        if stay_prob < self.model.random_state.uniform(0, 1, 1)[0]:
+        leave = (1-self.model.parameters['stay_prob'][self.fraudster]) > self.model.random_state.uniform(0, 1, 1)[0]
+        if leave:
             self.stay = False
 
 
@@ -93,10 +96,13 @@ class Customer(UniMausCustomer):
         super().__init__(customer_id, transaction_model, fraudster=False)
         self.card_corrupted = False
 
-    def step(self):
-        super().step()
-        if self.card_id in [f.card_id for f in self.model.fraudsters]:
-            self.card_corrupted = True
+    def decide_making_transaction(self):
+        do_trans = super().decide_making_transaction()
+        leave_after_fraud = (1-self.model.parameters['stay_after_fraud']) > self.model.random_state.uniform(0, 1, 1)[0]
+        if do_trans and self.card_corrupted and leave_after_fraud:
+                    do_trans = False
+                    self.stay = False
+        return do_trans
 
 
 class Fraudster(UniMausCustomer):
@@ -104,17 +110,26 @@ class Fraudster(UniMausCustomer):
         fraudster_id = transaction_model.get_next_fraudster_id()
         super().__init__(fraudster_id, transaction_model, fraudster=True)
 
-    # def initialise_card_id(self):
-    #     if self.model.parameters['fraud_cards_in_genuine'] > self.model.random_state.uniform(0, 1, 1)[0]:
-    #         # fraudster_countries = self.model.parameters['country_frac'].index[self.model.parameters['country_frac']['fraud'] !=0].values
-    #         # fraudster_currencies = self.model.parameters['currency_per_country'][1].index.get_level_values(1).unique()
-    #         # customer = self.model.random_state.choice([c for c in self.model.customers if (c.country in fraudster_countries) and (c.currency in fraudster_currencies)])
-    #         # card = customer.card
-    #         # # reset the country and currency given the customer
-    #         # self.country = customer.country
-    #         # # self.currency = customer.currency
-    #         # self.currency = self.initialise_currency()
-    #         card = self.model.random_state.choice([c.card for c in self.model.customers])
-    #     else:
-    #         card = self.unique_id
-    #     return card
+    def initialise_card_id(self):
+        if self.model.parameters['fraud_cards_in_genuine'] > self.model.random_state.uniform(0, 1, 1)[0]:
+            # the fraudster picks a customer...
+            # ... (1) from a familiar country
+            fraudster_countries = self.model.parameters['country_frac'].index[self.model.parameters['country_frac']['fraud'] !=0].values
+            # ... (2) from a familiar currency
+            fraudster_currencies = self.model.parameters['currency_per_country'][1].index.get_level_values(1).unique()
+            # ... (3) that has already made a transaction
+            customers_active_ids = [c.unique_id for c in self.model.customers if c.num_transactions > 0]
+            # now pick the fraud target (if there are no targets get own credit card)
+            try:
+                customer = self.model.random_state.choice([c for c in self.model.customers if (c.country in fraudster_countries) and (c.currency in fraudster_currencies) and (c.unique_id in customers_active_ids)])
+                # get the information from the target
+                card = customer.card_id
+                self.country = customer.country
+                self.currency = customer.currency
+                # tell customer card's been corrupted
+                customer.card_corrupted = True
+            except ValueError:
+                card = super().initialise_card_id()
+        else:
+            card = super().initialise_card_id()
+        return card
