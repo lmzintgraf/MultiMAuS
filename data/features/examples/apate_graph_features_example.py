@@ -1,5 +1,7 @@
 """
 Example script of how to use the ApateGraphFeatures class
+
+@author Dennis Soemers
 """
 
 from data.features.apate_graph_features import ApateGraphFeatures

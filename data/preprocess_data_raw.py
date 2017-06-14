@@ -37,32 +37,35 @@ del dataset["First Name"]
 del dataset["Last Name"]
 
 # rename the column names for consistency
-dataset = dataset.rename(columns={'Merchant': 'MerchantID', 'Card': 'CardID', 'date': 'Date', 'target': 'Target',
+dataset = dataset.rename(columns={'Merchant': 'MerchantID', 'Card': 'CardID', 'date': 'Global_Date', 'target': 'Target',
                                   'GeoCode': 'PurchaseCountry'})
 
 # convert dates into datetime format
-dataset["Date"] = dataset["Date"].apply(lambda date: datetime.strptime(date, '%Y-%m-%d %H:%M:%S'))
+dataset["Global_Date"] = dataset["Global_Date"].apply(lambda date: datetime.strptime(date, '%Y-%m-%d %H:%M:%S'))
 
 # where the GeoCode is unknown, use the card issuing Country (important for time conversion)
 dataset.loc[dataset["PurchaseCountry"] == "--", "PurchaseCountry"] = dataset.loc[dataset["PurchaseCountry"] == "--", "Country"]
 dataset.loc[dataset["PurchaseCountry"].isnull(), "PurchaseCountry"] = dataset.loc[dataset["PurchaseCountry"].isnull(), "Country"]
 
+# duplicate Global_Date column into a Local_Date column
+dataset["Local_Date"] = dataset["Global_Date"]
+
 # add timezone info (Pacific Standard Time)
-dataset["Date"] = dataset["Date"].apply(lambda date: date.replace(tzinfo=timezone('US/Pacific')))
+dataset["Local_Date"] = dataset["Local_Date"].apply(lambda date: date.replace(tzinfo=timezone('US/Pacific')))
 
 # convert dates into local times (not that if it's ambiguous like Australia I just take the first entry
-dataset["Date"] = dataset.apply(lambda d: d["Date"].astimezone(timezone(country_timezones(d["PurchaseCountry"])[0])), axis=1)
+dataset["Local_Date"] = dataset.apply(lambda d: d["Local_Date"].astimezone(timezone(country_timezones(d["PurchaseCountry"])[0])), axis=1)
 
 # remove the timezone info
-dataset["Date"] = dataset.apply(lambda d: d["Date"].replace(tzinfo=None), axis=1)
+dataset["Local_Date"] = dataset.apply(lambda d: d["Local_Date"].replace(tzinfo=None), axis=1)
 
 # convert currencies into EUR (using the conversion rate from the date of purchase)
 c = CurrencyConverter(fallback_on_missing_rate=True)
-dataset["Amount"] = dataset.apply(lambda d: round(c.convert(d["Amount"], d["Currency"], 'EUR', d["Date"]), 2), axis=1)
+dataset["Amount"] = dataset.apply(lambda d: round(c.convert(d["Amount"], d["Currency"], 'EUR', d["Local_Date"]), 2), axis=1)
 
 # the data goes from 12.5.15 to 2.1.17
 # only three fraud cases are recorded in 2016, so we reduce to 01.01.16 - 31.12.16
-dataset = dataset[dataset['Date'].apply(lambda d: d.year) == 2016]
+dataset = dataset[dataset['Local_Date'].apply(lambda d: d.year) == 2016]
 
 # convert Merchant, Card, FirstName, LastName, Email into integers
 merchants = list(dataset["MerchantID"])
@@ -127,7 +130,7 @@ print("")
 del dataset["PurchaseCountry"]
 
 # bring columns into convenient order
-dataset = dataset[['Date', 'CardID', 'MerchantID', 'Amount', 'Currency', 'Country', 'Target']]
+dataset = dataset[['Global_Date', 'Local_Date', 'CardID', 'MerchantID', 'Amount', 'Currency', 'Country', 'Target']]
 
 print(dataset.head())
 
