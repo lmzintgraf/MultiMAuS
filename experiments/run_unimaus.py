@@ -19,11 +19,10 @@ def run_single():
     # get the collected data
     agent_vars = model.log_collector.get_agent_vars_dataframe()
     agent_vars.index = agent_vars.index.droplevel(1)
-    print(agent_vars.head())
-    print(agent_vars.shape)
 
     agent_vars.to_csv(utils_data.FILE_SIMULATOR_LOG, index_label=False)
 
+    print(utils_data.get_data_stats('simulator'))
     print('simulation took ', round((time.time() - start_time)/60., 2), ' minutes')
 
 if __name__ == '__main__':
