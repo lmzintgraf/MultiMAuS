@@ -43,7 +43,7 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
         """
         # convert global to local date (first add global timezone info, then convert to local)
         curr_global_date = self.model.curr_global_date.replace(tzinfo=timezone('US/Pacific'))
-        curr_local_date = curr_global_datec.astimezone(timezone(country_timezones(self.country)[0]))
+        curr_local_date = curr_global_date.astimezone(timezone(country_timezones(self.country)[0]))
         self.curr_local_date = curr_local_date.replace(tzinfo=None)
 
         # decide whether to make transaction or not
