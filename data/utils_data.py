@@ -35,8 +35,9 @@ def get_dataset(data_source):
 
     # get dataset from file
     dataset01 = pd.read_csv(join(logs_folder, 'transaction_log.csv'))
-    # make the "date" column actually dates
-    dataset01["Date"] = pd.to_datetime(dataset01["Date"])
+    # cast "date" column datetime objects
+    dataset01["Global_Date"] = pd.to_datetime(dataset01["Global_Date"])
+    dataset01["Local_Date"] = pd.to_datetime(dataset01["Local_Date"])
 
     # for convenience split the dataset into non-fraud(0)/fraud(1)
     dataset0 = dataset01[dataset01["Target"] == 0]
@@ -59,21 +60,21 @@ def get_data_stats(data_source):
 
     data_stats.loc['transactions'] = [d.shape[0] for d in datasets]
 
-    data_stats.loc['transactions/hour'] = [round(d['Date'].apply(lambda x: x.hour).value_counts().sum()/24/365,
-                                                 2) for d in datasets]
-    data_stats.loc['transactions/day'] = [round(d['Date'].apply(lambda x: x.day).value_counts().sum() / 365,
-                                                 2) for d in datasets]
-    data_stats.loc['transactions/week'] = [round(d['Date'].apply(lambda x: x.week).value_counts().sum() / 52,
-                                                2) for d in datasets]
-    data_stats.loc['transactions/month'] = [round(d['Date'].apply(lambda x: x.month).value_counts().sum() / 12,
-                                                2) for d in datasets]
+    data_stats.loc['transactions/hour'] = [round(d['Local_Date'].apply(lambda x: x.hour).value_counts().sum()/24/366, 2) for d in datasets]
+    data_stats.loc['transactions/day'] = [round(d['Local_Date'].apply(lambda x: x.day).value_counts().sum() / 366, 2) for d in datasets]
+    data_stats.loc['transactions/week'] = [round(d['Local_Date'].apply(lambda x: x.week).value_counts().sum() / 52, 2) for d in datasets]
+    data_stats.loc['transactions/month'] = [round(d['Local_Date'].apply(lambda x: x.month).value_counts().sum() / 12, 2) for d in datasets]
 
     data_stats.loc['cards'] = [len(d["CardID"].unique()) for d in datasets]
     data_stats.loc['cards, single use'] = [sum(d["CardID"].value_counts() == 1) for d in datasets]
     data_stats.loc['cards, multi use'] = [sum(d["CardID"].value_counts() > 1) for d in datasets]
 
-    data_stats.loc['first transaction'] = [min(d["Date"]).date() for d in datasets]
-    data_stats.loc['last transaction'] = [max(d["Date"]).date() for d in datasets]
+    cards_genuine = datasets[1]['CardID'].unique()
+    cards_fraud = datasets[2]['CardID'].unique()
+    data_stats.loc['fraud cards in genuine'] = ['-', '-', len(np.intersect1d(cards_genuine, cards_fraud)) / len(cards_fraud)]
+
+    data_stats.loc['first transaction'] = [min(d["Global_Date"]).date() for d in datasets]
+    data_stats.loc['last transaction'] = [max(d["Global_Date"]).date() for d in datasets]
 
     data_stats.loc['min amount'] = [min(d["Amount"]) for d in datasets]
     data_stats.loc['max amount'] = [max(d["Amount"]) for d in datasets]
@@ -146,7 +147,3 @@ def plot_bar_trans_prob(trans_frac, col_name, file_name=None):
         file_name = col_name
     plt.savefig(join(FOLDER_SIMULATOR_INPUT, '{}_num-trans_bar'.format(file_name)))
     plt.close()
-
-
-if __name__ == '__main__':
-    print(get_data_stats('simulator'))
