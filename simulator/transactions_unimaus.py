@@ -20,6 +20,7 @@ class UniMausTransactionModel(Model):
         self.random_state = np.random.RandomState(self.parameters["seed"])
         self.curr_global_date = self.parameters['start_date']
         self.curr_month = -1
+        self.today_int = int(self.curr_global_date.date().strftime("%s"))
 
         # set termination status
         self.terminated = False
