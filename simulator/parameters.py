@@ -4,40 +4,42 @@ import numpy as np
 from data import utils_data
 import pandas as pd
 
-aggregated_data = pd.read_csv(join(utils_data.FOLDER_SIMULATOR_INPUT, 'aggregated_data.csv'), index_col=0)
-trans_per_year = np.array(aggregated_data.loc['transactions'].values, dtype=np.float)[1:]
-
 
 def get_default_parameters():
+
+    aggregated_data = pd.read_csv(join(utils_data.FOLDER_SIMULATOR_INPUT, 'aggregated_data.csv'), index_col=0)
 
     params = {
 
         # seed for random number generator of current simulation
-        'seed': 12345,
-
-        # noise level of the entire simulation, between 0 and 1
-        'noise_level': 0,
+        'seed': 666,
 
         # start and end date of simulation
-        'start date': datetime(2016, 1, 1),
-        'end date': datetime(2016, 12, 31),
+        'start_date': datetime(2016, 1, 1),
+        'end_date': datetime(2016, 12, 31),
 
-        # max number of authentication steps (at least 1)
-        'max authentication steps': 1,
+        # how much noise we use in the simulation
+        'noise_level': 0.1,
 
         # number of customers and fraudsters at beginning of simulation
         # (note that this doesn't really influence the total amount of transactions;
         #  for that change the probability of making transactions)
-        'num_customers': 100,
-        # 'num_customers': 3333,
-        'num_fraudsters': 10,
-        # 'num_fraudsters': 55,
+        'num_customers': 3333,
+        'num_fraudsters': 55,
+
+        # the intrinsic transaction motivation per customer (is proportional to number of customers/fraudsters)
+        # we keep this seperate because then we can play around with the number of customers/fraudsters,
+        # but individual behaviour doesn't change
+        'transaction_motivation': [1./3333, 1./55],
+
+        # number of fraud cards also used in genuine cards
+        'fraud_cards_in_genuine': float(aggregated_data.loc['fraud cards in genuine', 'fraud']),
 
         # number of merchants at the beginning of simulation
-        'num merchants': int(aggregated_data.loc['num merchants', 'all']),
+        'num_merchants': int(aggregated_data.loc['num merchants', 'all']),
 
         # total number of transactions we want in one year
-        'trans_per_year': trans_per_year,
+        'trans_per_year': np.array(aggregated_data.loc['transactions'].values, dtype=np.float)[1:],
 
         # transactions per day in a month
         'frac_monthday': np.load(join(utils_data.FOLDER_SIMULATOR_INPUT, 'monthday_frac.npy')),
@@ -63,7 +65,8 @@ def get_default_parameters():
         'merchant_amount_parameters': np.load(join(utils_data.FOLDER_SIMULATOR_INPUT, 'merchant_amount_parameters.npy')),
 
         # probability of doing another transaction
-        'stay_prob': np.load(join(utils_data.FOLDER_SIMULATOR_INPUT, 'prob_stay.npy'))
+        'stay_prob': np.load(join(utils_data.FOLDER_SIMULATOR_INPUT, 'prob_stay.npy')),
+        'stay_after_fraud': np.load(join(utils_data.FOLDER_SIMULATOR_INPUT, 'prob_stay_after_fraud.npy'))
     }
 
     return params
