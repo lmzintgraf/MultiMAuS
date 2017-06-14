@@ -1,5 +1,6 @@
 from mesa import Agent
 from abc import ABCMeta, abstractmethod
+from pytz import timezone, country_timezones
 
 
 class AbstractCustomer(Agent,  metaclass=ABCMeta):
@@ -19,7 +20,7 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
         # pick country, currency, card
         self.country = self.initialise_country()
         self.currency = self.initialise_currency()
-        self.card_id = self.initialise_card_id()
+        self.card_id = None  # pick with first transaction
 
         # variable for whether a transaction is currently being processed
         self.active = False
@@ -27,6 +28,10 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
         # fields for storing the current transaction properties
         self.curr_merchant = None
         self.curr_amount = None
+        self.curr_local_date = None
+
+        # count how many transactions customer has made already
+        self.num_transactions = 0
 
         # variable tells us whether the customer wants to stay after current transaction
         self.stay = True
@@ -36,10 +41,19 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
         This is called in each simulation step (i.e., one hour).
         Each individual customer/fraudster decides whether to make a transaction or  not.
         """
+        # convert global to local date (first add global timezone info, then convert to local)
+        curr_global_date = self.model.curr_global_date.replace(tzinfo=timezone('US/Pacific'))
+        curr_local_date = curr_global_datec.astimezone(timezone(country_timezones(self.country)[0]))
+        self.curr_local_date = curr_local_date.replace(tzinfo=None)
+
+        # decide whether to make transaction or not
         if self.decide_making_transaction():
+            if self.num_transactions == 0:
+                self.card_id = self.initialise_card_id()
             self.active = True
             self.make_transaction()
             self.stay_customer()
+            self.num_transactions += 1
         else:
             self.active = False
             self.curr_merchant = None
