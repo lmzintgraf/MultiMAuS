@@ -1,5 +1,4 @@
 from simulator.merchant import Merchant
-from simulator.customer_unimaus import GenuineCustomer, FraudulentCustomer
 from mesa.time import RandomActivation
 from simulator import parameters
 from simulator.log_collector import LogCollector
@@ -9,7 +8,7 @@ import numpy as np
 
 
 class UniMausTransactionModel(Model):
-    def __init__(self, model_parameters):
+    def __init__(self, model_parameters, CustomerClass, FraudsterClass):
         super().__init__()
 
         # make sure we didn't accidentally add new params anywhere
@@ -17,6 +16,9 @@ class UniMausTransactionModel(Model):
 
         # load parameters
         self.parameters = model_parameters
+        self.CustomerClass = CustomerClass
+        self.FraudsterClass = FraudsterClass
+
         self.random_state = np.random.RandomState(self.parameters["seed"])
         self.curr_global_date = self.parameters['start_date']
         self.curr_month = -1
@@ -86,35 +88,75 @@ class UniMausTransactionModel(Model):
 
     def customer_migration(self):
 
-        num_customers_before = len(self.customers)
-        num_fraudsters_before = len(self.fraudsters)
-
         # emigration
         self.customers = [c for c in self.customers if c.stay]
         self.fraudsters = [f for f in self.fraudsters if f.stay]
 
         # immigration
-        self.immigration_customers(num_customers_before)
-        self.immigration_fraudsters(num_fraudsters_before)
+        self.immigration_customers()
+        self.immigration_fraudsters()
 
-    def immigration_customers(self, num_customers_before):
-        # add as many customers as we removed
-        num_new_cust = num_customers_before - len(self.customers)
-        self.customers.extend([GenuineCustomer(self) for _ in range(num_new_cust)])
+    def immigration_customers(self):
+        fraudster = 0
 
-    def immigration_fraudsters(self, num_fraudsters_before):
-        # estimate number of fraudsters we add
-        num_new_frauds = num_fraudsters_before - len(self.fraudsters)
-        self.fraudsters.extend([FraudulentCustomer(self) for _ in range(num_new_frauds)])
+        noise_level = self.parameters['noise_level']
+        # estimate how many genuine transactions there were
+        num_transactions = self.parameters['trans_per_year'][fraudster]
+        num_transactions /= 356 * 24
+        # scale by current month
+        num_trans_month = num_transactions * 12 * self.parameters['frac_month'][self.curr_global_date.month - 1, fraudster]
+        num_transactions = (1 - noise_level) * num_trans_month + noise_level * num_transactions
+
+        # estimate how many customers on avg left
+        num_customers_left = num_transactions * (1 - self.parameters['stay_prob'][fraudster])
+
+        if num_customers_left > 1:
+            num_customers_left += self.random_state.normal(0, 1, 1)[0]
+            num_customers_left = int(np.round(num_customers_left, 0))
+            num_customers_left = np.max([0, num_customers_left])
+        else:
+            if num_customers_left > np.random.uniform(0, 1, 1)[0]:
+                num_customers_left = 1
+            else:
+                num_customers_left = 0
+
+        # add as many customers as we think that left
+        self.customers.extend([self.CustomerClass(self) for _ in range(num_customers_left)])
+
+    def immigration_fraudsters(self):
+        fraudster = 1
+        noise_level = self.parameters['noise_level']
+        # estimate how many fraudulent transactions there were
+        num_transactions = self.parameters['trans_per_year'][fraudster]
+        num_transactions /= 356 * 24
+        # scale by current month
+        num_trans_month = num_transactions * 12 * self.parameters['frac_month'][self.curr_global_date.month - 1, fraudster]
+        num_transactions = (1 - noise_level) * num_trans_month + noise_level * num_transactions
+
+        # estimate how many fraudsters on avg left
+        num_fraudsters_left = num_transactions * (1 - self.parameters['stay_prob'][fraudster])
+
+        if num_fraudsters_left > 1:
+            num_fraudsters_left += self.random_state.normal(0, 1, 1)[0]
+            num_fraudsters_left = int(np.round(num_fraudsters_left, 0))
+            num_fraudsters_left = np.max([0, num_fraudsters_left])
+        else:
+            if num_fraudsters_left > np.random.uniform(0, 1, 1)[0]:
+                num_fraudsters_left = 1
+            else:
+                num_fraudsters_left = 0
+
+        # add as many fraudsters as we think that left
+        self.fraudsters.extend([self.FraudsterClass(self) for _ in range(num_fraudsters_left)])
 
     def initialise_merchants(self):
         return [Merchant(i, self) for i in range(self.parameters["num_merchants"])]
 
     def initialise_customers(self):
-        return [GenuineCustomer(self) for _ in range(self.parameters['num_customers'])]
+        return [self.CustomerClass(self) for _ in range(self.parameters['num_customers'])]
 
     def initialise_fraudsters(self):
-        return [FraudulentCustomer(self) for _ in range(self.parameters["num_fraudsters"])]
+        return [self.FraudsterClass(self) for _ in range(self.parameters["num_fraudsters"])]
 
     def get_next_customer_id(self):
         next_id = self.next_customer_id
