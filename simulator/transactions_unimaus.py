@@ -1,5 +1,5 @@
 from simulator.merchant import Merchant
-from simulator.customer_unimaus import Customer, Fraudster
+from simulator.customer_unimaus import GenuineCustomer, FraudulentCustomer
 from mesa.time import RandomActivation
 from simulator import parameters
 from simulator.log_collector import LogCollector
@@ -47,8 +47,6 @@ class UniMausTransactionModel(Model):
                              "Currency": lambda c: c.currency,
                              "Country": lambda c: c.country,
                              "Target": lambda c: c.fraudster})
-
-        self.rand_factor_today = self.random_state.normal(0, 0.1, 1)[0]
 
         # get the true fractions of transactions per month/hour/weekday/monthday
         self.t_frac_month = self.parameters['frac_month']
@@ -102,21 +100,21 @@ class UniMausTransactionModel(Model):
     def immigration_customers(self, num_customers_before):
         # add as many customers as we removed
         num_new_cust = num_customers_before - len(self.customers)
-        self.customers.extend([Customer(self) for _ in range(num_new_cust)])
+        self.customers.extend([GenuineCustomer(self) for _ in range(num_new_cust)])
 
     def immigration_fraudsters(self, num_fraudsters_before):
         # estimate number of fraudsters we add
         num_new_frauds = num_fraudsters_before - len(self.fraudsters)
-        self.fraudsters.extend([Fraudster(self) for _ in range(num_new_frauds)])
+        self.fraudsters.extend([FraudulentCustomer(self) for _ in range(num_new_frauds)])
 
     def initialise_merchants(self):
         return [Merchant(i, self) for i in range(self.parameters["num_merchants"])]
 
     def initialise_customers(self):
-        return [Customer(self) for _ in range(self.parameters['num_customers'])]
+        return [GenuineCustomer(self) for _ in range(self.parameters['num_customers'])]
 
     def initialise_fraudsters(self):
-        return [Fraudster(self) for _ in range(self.parameters["num_fraudsters"])]
+        return [FraudulentCustomer(self) for _ in range(self.parameters["num_fraudsters"])]
 
     def get_next_customer_id(self):
         next_id = self.next_customer_id
