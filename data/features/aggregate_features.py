@@ -16,42 +16,6 @@ Implementation is partially based on https://github.com/kb211/Fraud_Detection201
 @author Dennis Soemers
 """
 
-# TODO
-'''
-WARNING:
-
-The current implementation of computing historical features actually doesn't work correctly. I attempted
-to speed up the code by using binary search to quickly find points in time within the dataset, and then
-immediately select all the data in between those timepoints, instead of having the pandas code comparing
-dates in every single row.
-
-This optimization is based on the idea that we can exploit knowledge of our data, in that we know it's
-supposed to be sorted by date. Unfortunately, it turns out.. it's actually not completely sorted by date.
-The data is correctly sorted by the Date column of the original data, but preprocess_data_raw.py transforms
-the Date column into one that contains the time in the Country where the transaction took place. This means
-that the Date column doesn't actually have the meaning we want it to have, and it's not perfectly sorted anymore.
-
-I think we'll want to change preprocess_data_raw.py to split up the Date column in two columns; one containing
-global timestamps, and one containing timestamps corresponding to the Country. The global timestamps column
-will be perfectly sorted, and that's the one we'd want to use to construct features such as ''how many transactions
-were done with the same Card ID within the previous hour''. The local timestamps would instead be useful for a
-feature such as ''is this a night-time transaction?'' (for that feature it's important to consider whether it's
-night-time in the customer's country, not whether it's night-time in some random other place in the world).
-
-Including here some output of a run on my desktop in the previous version of the code (before I attempted implementing
-the binary-search optimization). May be useful to compare later on to the new implementation (once it actually works
-correctly), to see if it indeed speeds things up:
-
-2017-06-13 11:06:31.233998 : Finished adding country-related features...
-2017-06-13 11:06:36.201568 : Finished adding Time Since First Order feature...
-2017-06-13 11:06:36.223638 : Added all-zero columns
-2017-06-13 11:21:24.403763 : Finished adding historical features
-2017-06-13 11:21:29.481382 : Finished adding country-related features...
-2017-06-13 11:21:32.439308 : Finished adding Time Since First Order feature...
-2017-06-13 11:21:32.459417 : Added all-zero columns
-2017-06-13 11:35:18.132286 : Finished adding historical features
-'''
-
 from datetime import datetime
 from datetime import timedelta
 import pandas as pd
@@ -204,24 +168,35 @@ class AggregateFeatures:
         print(str(datetime.now()), ": Added all-zero columns")
 
         # now we have all the columns ready, and we can loop through rows, handling all features per row at once
+        row_idx = 0
         for row in data.itertuples():
             # date of the row we're adding features for
-            row_date = row.Date
+            row_date = row.Global_Date
 
             # the Card ID of the row we're adding features for
             row_card_id = row.CardID
 
             # select all training data with correct Card ID, and with a date earlier than row
-            matching_data = self.extract_transactions_before(self.training_data, row_date)
+            if include_test_data_in_history:
+                # this should mean we're looping through test set which took place after training data,
+                # so we expect entire training set to be before row_date
+                hint = self.training_data.shape[0] - 1
+            else:
+                # this should mean we're looping through the training data, so we expect all previous rows
+                # to be before row_date
+                hint = row_idx - 1
+
+            matching_data = self.extract_transactions_before(self.training_data, row_date, hint=hint)
 
             if matching_data is None:
+                row_idx += 1
                 continue
 
             matching_data = matching_data.loc[(matching_data["CardID"] == row_card_id)]
 
             if include_test_data_in_history:
                 # also need to include parts of test data with earlier dates than the row we're adding features to
-                matching_test_data = self.extract_transactions_before(data, row_date)
+                matching_test_data = self.extract_transactions_before(data, row_date, hint=(row_idx - 1))
 
                 if matching_test_data is not None:
                     matching_test_data = matching_test_data.loc[matching_test_data["CardID"] == row_card_id]
@@ -258,6 +233,8 @@ class AggregateFeatures:
                     data.set_value(row.Index, col_name_num, conditional_matching_data.shape[0])
                     data.set_value(row.Index, col_name_amt, conditional_matching_data["Amount"].sum())
 
+            row_idx += 1
+
         return data
 
     def compute_first_order_times_dict(self, training_data):
@@ -275,7 +252,7 @@ class AggregateFeatures:
             card = row.CardID
 
             if card not in first_order_times_dict:
-                first_order_times_dict[card] = row.Date
+                first_order_times_dict[card] = row.Global_Date
 
         return first_order_times_dict
 
@@ -310,7 +287,7 @@ class AggregateFeatures:
 
         return all_transactions_dict, fraud_transactions_dict
 
-    def extract_transactions_before(self, data, date):
+    def extract_transactions_before(self, data, date, hint=-1):
         """
         Helper function which extracts all transactions from the given data which took place before
         the given point in time. It assumes that the data is sorted by date (this assumption allows
@@ -320,6 +297,11 @@ class AggregateFeatures:
             Data to extract transactions from
         :param date:
             We'll extract transactions that took place before this point in time
+        :param hint:
+            If >= 0, we'll inspect the date of the transaction at this index first. Can be used to
+            speed up the binary search. For example, if data = training data, and date = the date of
+            a transaction from later test data, we can set hint to (the size of the training data - 1)
+            in order to instantly see that the entire training data occurred before the given date
         :return:
             The extracted transactions
         """
@@ -331,9 +313,16 @@ class AggregateFeatures:
         low = 0
         high = data.shape[0] - 1
 
+        if hint >= 0:
+            # we were given a hint, should investigate there first
+            hint_date = data.iloc[hint].Global_Date
+
+            if hint_date < date:
+                low = hint + 1
+
         while low <= high:
             mid = (low + high) // 2
-            mid_date = data.iloc[mid].Date
+            mid_date = data.iloc[mid].Global_Date
 
             #print("Time at ", mid, " = ", str(mid_date))
 
@@ -381,7 +370,7 @@ class AggregateFeatures:
 
         while low <= high:
             mid = (low + high) // 2
-            mid_date = data.iloc[mid].Date
+            mid_date = data.iloc[mid].Global_Date
 
             if mid_date >= date:
                 high = mid - 1
@@ -435,7 +424,7 @@ class AggregateFeatures:
             Time (in hours) since first order with the same card (or 0 if never seen before)
         """
         cardID = row["CardID"]
-        date = row["Date"]
+        date = row["Global_Date"]
 
         if cardID in self.first_order_times_dict:
             time_delta = date - self.first_order_times_dict[cardID]

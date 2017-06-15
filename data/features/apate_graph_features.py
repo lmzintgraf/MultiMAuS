@@ -119,7 +119,7 @@ class ApateGraphFeatures:
         Another reasonable alternative could be to use the first date of a test set. It is not clear which timepoint
         was used in the two papers this implementation is based on.
         '''
-        test_date = training_data.Date.max()
+        test_date = training_data.Global_Date.max()
 
         t = 0
         for row in training_data.itertuples():
@@ -127,9 +127,9 @@ class ApateGraphFeatures:
             m = merchants[t]
 
             # compute entries in adjacency matrix with different implementations of decay
-            short_term_entry = self.compute_A_entry(row.Date, test_date, gamma=0.03, interval="short")
-            medium_term_entry = self.compute_A_entry(row.Date, test_date, gamma=0.004, interval="medium")
-            long_term_entry = self.compute_A_entry(row.Date, test_date, gamma=0.0001, interval="long")
+            short_term_entry = self.compute_A_entry(row.Global_Date, test_date, gamma=0.03, interval="short")
+            medium_term_entry = self.compute_A_entry(row.Global_Date, test_date, gamma=0.004, interval="medium")
+            long_term_entry = self.compute_A_entry(row.Global_Date, test_date, gamma=0.0001, interval="long")
 
             # entry in A_{t * c}
             rows_A.append(t)

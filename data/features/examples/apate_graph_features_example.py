@@ -25,7 +25,8 @@ def run_test():
     df = pd.read_csv(DATA_FILEPATH)
 
     # convert date column to proper type
-    df["Date"] = pd.to_datetime(df["Date"])
+    df["Global_Date"] = pd.to_datetime(df["Global_Date"])
+    df["Local_Date"] = pd.to_datetime(df["Local_Date"])
 
     # extract part of data to use for learning features
     df_feature_learning = df.iloc[:NUM_FEATURE_LEARNING_INSTANCES]
@@ -50,8 +51,8 @@ def run_test():
     graph_features.add_graph_features(df_test)
 
     # remove features which we no longer want to use in machine learning
-    df_model_learning = df_model_learning.drop(["Date", "CardID", "MerchantID", "Currency", "Country"], 1)
-    df_test = df_test.drop(["Date", "CardID", "MerchantID", "Currency", "Country"], 1)
+    df_model_learning = df_model_learning.drop(["Global_Date", "Local_date", "CardID", "MerchantID", "Currency", "Country"], 1)
+    df_test = df_test.drop(["Global_Date", "Local_Date", "CardID", "MerchantID", "Currency", "Country"], 1)
 
     # extract the ground truth labels
     training_labels = df_model_learning["Target"].values

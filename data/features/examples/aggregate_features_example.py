@@ -17,8 +17,9 @@ def run_test():
     # load dataframe
     df = pd.read_csv(DATA_FILEPATH)
 
-    # convert date column to proper type
-    df["Date"] = pd.to_datetime(df["Date"])
+    # convert date columns to proper type
+    df["Global_Date"] = pd.to_datetime(df["Global_Date"])
+    df["Local_Date"] = pd.to_datetime(df["Local_Date"])
 
     # extract part of data to use for training
     df_training = df.iloc[:NUM_TRAINING_INSTANCES]
