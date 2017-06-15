@@ -98,11 +98,24 @@ class UniMausCustomer(AbstractCustomer):
 
 class GenuineCustomer(UniMausCustomer):
     def __init__(self, transaction_model):
+        """
+        Initialise a genuine customer for the uni-modal authentication model
+        :param transaction_model: 
+        """
+
+        # initialise the base customer
         customer_id = transaction_model.get_next_customer_id()
         super().__init__(customer_id, transaction_model, fraudster=False)
+
+        # add field for whether the credit card was corrupted by a fraudster
         self.card_corrupted = False
 
     def decide_making_transaction(self):
+        """
+        For a genuine customer, we add the option of leaving
+        when the customer's card was subject to fraud
+        :return: 
+        """
         do_trans = super().decide_making_transaction()
         leave_after_fraud = (1-self.model.parameters['stay_after_fraud']) > self.model.random_state.uniform(0, 1, 1)[0]
         if do_trans and self.card_corrupted and leave_after_fraud:
@@ -113,10 +126,19 @@ class GenuineCustomer(UniMausCustomer):
 
 class FraudulentCustomer(UniMausCustomer):
     def __init__(self, transaction_model):
+        """
+        Initialise a fraudulent customer for the uni-model authentication model
+        :param transaction_model: 
+        """
         fraudster_id = transaction_model.get_next_fraudster_id()
         super().__init__(fraudster_id, transaction_model, fraudster=True)
 
     def initialise_card_id(self):
+        """
+        Pick a card either by using a card from an existing user,
+        or a completely new one (i.e., from customers unnknown to the processing platform)
+        :return: 
+        """
         if self.model.parameters['fraud_cards_in_genuine'] > self.model.random_state.uniform(0, 1, 1)[0]:
             # the fraudster picks a customer...
             # ... (1) from a familiar country
