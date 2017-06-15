@@ -2,11 +2,6 @@ from mesa import Agent
 import numpy as np
 
 
-def sigmoid(x, min_amount, max_amount, x0, k):
-    y = max_amount / (1 + np.exp(-k * (x - x0))) + min_amount
-    return y
-
-
 class Merchant(Agent):
     """
     A merchant that sells products to customers.
@@ -16,11 +11,12 @@ class Merchant(Agent):
 
         # the parameters to obtain transaction amounts from this merchant
         self.random_state = self.model.random_state
-        self.sigmoid_params = self.model.parameters['merchant_amount_parameters'][:, self.unique_id, :]
+        self.distr_params = self.model.parameters['merchant_amount_distr'][:, self.unique_id, :]
 
         # save the min/max amount in a seperate field in case customers want to choose the amount themselves
-        self.min_amount = np.min([self.sigmoid_params[0][0], self.sigmoid_params[1][0]])
-        self.max_amount = np.max([self.sigmoid_params[0][1], self.sigmoid_params[1][1]])
+        num_bins = int(len(self.distr_params[0, :])/2)
+        self.min_amount = np.min(self.distr_params[:, :num_bins])
+        self.max_amount = np.max(self.distr_params[:, :num_bins])
 
     def get_amount(self, customer):
         """
@@ -28,13 +24,17 @@ class Merchant(Agent):
         We use the empirical distribution over amounts for the given merchant.
         :param customer:    The customer that wants to make a transaction,
                             child instance of AbstractCustomer
-        :return: 
+        :return:
         """
-        # get a random input to the sigmoid
-        x = self.model.random_state.uniform(0, 1, 1)[0]
+        distr_params = self.distr_params[customer.fraudster]
 
-        # get an amount from the sigmoid function
-        amount = sigmoid(x, *self.sigmoid_params[customer.fraudster])
+        num_bins = int(len(distr_params)/2)
+        bin_heights = distr_params[:num_bins]
+        bin_edges = distr_params[num_bins:]
+
+        # get a random input to the sigmoid
+        bin_idx = self.model.random_state.choice(range(len(bin_heights)), p=bin_heights)
+
+        amount = self.model.random_state.uniform(bin_edges[bin_idx], bin_edges[bin_idx+1], 1)[0]
 
         return amount
-
