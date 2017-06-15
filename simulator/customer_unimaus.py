@@ -96,7 +96,7 @@ class UniMausCustomer(AbstractCustomer):
             self.stay = False
 
 
-class Customer(UniMausCustomer):
+class GenuineCustomer(UniMausCustomer):
     def __init__(self, transaction_model):
         customer_id = transaction_model.get_next_customer_id()
         super().__init__(customer_id, transaction_model, fraudster=False)
@@ -111,7 +111,7 @@ class Customer(UniMausCustomer):
         return do_trans
 
 
-class Fraudster(UniMausCustomer):
+class FraudulentCustomer(UniMausCustomer):
     def __init__(self, transaction_model):
         fraudster_id = transaction_model.get_next_fraudster_id()
         super().__init__(fraudster_id, transaction_model, fraudster=True)
