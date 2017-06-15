@@ -23,7 +23,7 @@ def get_default_parameters():
 
         # number of customers and fraudsters at beginning of simulation
         # (note that this doesn't really influence the total amount of transactions;
-        #  for that change the probability of making transactions)
+        #  for that change the probabxility of making transactions)
         'num_customers': 3333,
         'num_fraudsters': 55,
 
@@ -62,7 +62,7 @@ def get_default_parameters():
             pd.read_csv(join(utils_data.FOLDER_SIMULATOR_INPUT, 'merchant_per_currency1.csv'), index_col=[0, 1], header=None)],
 
         # amount per merchant
-        'merchant_amount_parameters': np.load(join(utils_data.FOLDER_SIMULATOR_INPUT, 'merchant_amount_parameters.npy')),
+        'merchant_amount_distr': np.load(join(utils_data.FOLDER_SIMULATOR_INPUT, 'merchant_amount_distr.npy')),
 
         # probability of doing another transaction
         'stay_prob': np.load(join(utils_data.FOLDER_SIMULATOR_INPUT, 'prob_stay.npy')),
