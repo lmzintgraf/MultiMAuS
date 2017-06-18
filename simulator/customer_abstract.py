@@ -1,6 +1,7 @@
 from mesa import Agent
 from abc import ABCMeta, abstractmethod
 from pytz import timezone, country_timezones
+import numpy as np
 
 
 class AbstractCustomer(Agent,  metaclass=ABCMeta):
@@ -13,6 +14,9 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
         """
         # call super init from mesa agent
         super().__init__(unique_id, transaction_model)
+
+        # internal random state
+        self.random_state = np.random.RandomState(self.model.random_state.randint(0, 2**32 - 1))
 
         # each customer has to say if it's a fraudster or not
         self.fraudster = int(fraudster)
