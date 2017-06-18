@@ -10,7 +10,7 @@ class Merchant(Agent):
         super().__init__(merchant_id, transaction_model)
 
         # the parameters to obtain transaction amounts from this merchant
-        self.random_state = self.model.random_state
+        self.random_state = np.random.RandomState(self.model.random_state.randint(0, 2**32 - 1))
         self.distr_params = self.model.parameters['merchant_amount_distr'][:, self.unique_id, :]
 
         # save the min/max amount in a seperate field in case customers want to choose the amount themselves
@@ -33,8 +33,8 @@ class Merchant(Agent):
         bin_edges = distr_params[num_bins:]
 
         # get a random input to the sigmoid
-        bin_idx = self.model.random_state.choice(range(len(bin_heights)), p=bin_heights)
+        bin_idx = self.random_state.choice(range(len(bin_heights)), p=bin_heights)
 
-        amount = self.model.random_state.uniform(bin_edges[bin_idx], bin_edges[bin_idx+1], 1)[0]
+        amount = self.random_state.uniform(bin_edges[bin_idx], bin_edges[bin_idx+1], 1)[0]
 
         return amount
