@@ -56,7 +56,7 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
                 self.card_id = self.initialise_card_id()
             self.active = True
             self.make_transaction()
-            self.stay_customer()
+            self.decide_staying()
             self.num_transactions += 1
         else:
             self.active = False
@@ -104,7 +104,7 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def stay_customer(self):
+    def decide_staying(self):
         """ 
         At a given point in time, decide whether or not to make another transaction in the future.
         :return:    Boolean indicating whether to make another transaction (stay=True) or not
