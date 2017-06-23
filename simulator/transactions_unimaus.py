@@ -21,23 +21,18 @@ class UniMausTransactionModel(Model):
 
         # random internal state
         self.random_state = np.random.RandomState(self.parameters["seed"])
-        self.noise_level = self.parameters['noise_level']
 
         # current date
         self.curr_global_date = self.parameters['start_date']
-        self.curr_month = -1
-        # integer representation of the current day
-        # self.today_int = int(self.curr_global_date.date().strftime("%s"))
 
         # set termination status
         self.terminated = False
 
         # create merchants, customers and fraudsters
-        self.merchants = self.initialise_merchants()
-
         self.next_customer_id = 0
         self.next_fraudster_id = 0
         self.next_card_id = 0
+        self.merchants = self.initialise_merchants()
         self.customers = self.initialise_customers()
         self.fraudsters = self.initialise_fraudsters()
 
@@ -55,28 +50,14 @@ class UniMausTransactionModel(Model):
                              "Country": lambda c: c.country,
                              "Target": lambda c: c.fraudster})
 
-        # get the true fractions of transactions per month/hour/weekday/monthday
-        self.trans_per_year = self.parameters['trans_per_year']
-        self.trans_prob_month = self.parameters['frac_month']
-        self.trans_prob_hour = self.parameters['frac_hour']
-        self.trans_prob_monthday = self.parameters['frac_monthday']
-        self.trans_prob_weekday = self.parameters['frac_weekday']
-
     def step(self):
 
-        if self.curr_global_date.day != (self.curr_global_date - timedelta(hours=1)).day:
-
-            # add some noise to the transaction amount / probabilities
-            self.trans_per_year[0] = self.parameters['trans_per_year'][0] + self.parameters['noise_level'] * self.random_state.normal(0, self.parameters['trans_per_year'][0]/100, 1)[0]
-            self.trans_per_year[1] = self.parameters['trans_per_year'][1] + self.parameters['noise_level'] * self.random_state.normal(0, self.parameters['trans_per_year'][1]/100, 1)[0]
-
-            self.trans_prob_month = self.parameters['frac_month'] + self.parameters['noise_level'] * self.random_state.normal(0, 1. / 120, (12, 2))
-            self.trans_prob_hour = self.parameters['frac_hour'] + self.parameters['noise_level'] * self.random_state.normal(0, 1. / 240, (24, 2))
-            self.trans_prob_monthday = self.parameters['frac_monthday'] + self.parameters['noise_level'] * self.random_state.normal(0, 1. / 310, (31, 2))
-            self.trans_prob_weekday = self.parameters['frac_weekday'] + self.parameters['noise_level'] * self.random_state.normal(0, 1. / 70, (7, 2))
-
+        # print some logs every mont
         if self.curr_global_date.month != (self.curr_global_date - timedelta(hours=1)).month:
             print(self.curr_global_date.date())
+            print('num customers:', len(self.customers))
+            print('num fraudsters:', len(self.fraudsters))
+            print('')
 
         # this calls the step function of each agent in the schedule (customer, fraudster)
         self.schedule.agents = []
