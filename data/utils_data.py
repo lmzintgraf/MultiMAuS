@@ -2,12 +2,13 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from os.path import join, dirname, exists
-from os import makedirs
+from os import makedirs, pardir
 
 FOLDER_REAL_DATA = join(dirname(__file__), 'real_data')
 FOLDER_SIMULATOR_INPUT = join(dirname(__file__), 'simulator_input')
-FOLDER_SIMULATOR_LOG = join(dirname(__file__), 'simulator_log')
 FOLDER_REAL_DATA_ANALYSIS = join(FOLDER_REAL_DATA, 'analysis')
+
+FOLDER_SIMULATOR_LOG = join(pardir, 'experiments/results')
 
 # create the above folders if they don't exist yet
 for folder in [FOLDER_REAL_DATA, FOLDER_SIMULATOR_INPUT, FOLDER_SIMULATOR_LOG, FOLDER_REAL_DATA_ANALYSIS]:
@@ -19,22 +20,15 @@ FILE_REAL_LOG = join(FOLDER_REAL_DATA, 'transaction_log.csv')
 FILE_SIMULATOR_LOG = join(FOLDER_SIMULATOR_LOG, 'transaction_log.csv')
 
 
-def get_dataset(data_source):
+def get_dataset(file):
     """
     Returns the dataset (full), and subsets for non-fraud and fraud only.
-    :param data_source:    where data comes from, type: str, value: 'real' or 'simulator'
+    :param file:
     :return: 
     """
 
-    if data_source == 'real':
-        logs_folder = FOLDER_REAL_DATA
-    elif data_source == 'simulator':
-        logs_folder = FOLDER_SIMULATOR_LOG
-    else:
-        raise KeyError('dataset_type not known; must be input or output')
-
     # get dataset from file
-    dataset01 = pd.read_csv(join(logs_folder, 'transaction_log.csv'))
+    dataset01 = pd.read_csv(file)
     # cast "date" column datetime objects
     dataset01["Global_Date"] = pd.to_datetime(dataset01["Global_Date"])
     dataset01["Local_Date"] = pd.to_datetime(dataset01["Local_Date"])
@@ -51,9 +45,34 @@ def get_dataset(data_source):
     return dataset01, dataset0, dataset1
 
 
-def get_data_stats(data_source):
+def get_real_dataset():
+    file = join(FOLDER_REAL_DATA, 'transaction_log.csv')
+    return get_dataset(file)
 
-    datasets = get_dataset(data_source)
+
+def get_simulated_dataset(result_idx):
+    """
+    Returns the dataset (full), and subsets for non-fraud and fraud only.
+    :param data_source:    where data comes from, type: str, value: 'real' or 'simulator'
+    :return: 
+    """
+
+    file = join(FOLDER_SIMULATOR_LOG, '{}_transaction_log.csv'.format(result_idx))
+
+    return get_dataset(file)
+
+
+def get_real_data_stats():
+    datasets = get_real_dataset()
+    return get_data_stats(datasets)
+
+
+def get_simulated_data_stats(result_idx):
+    datasets = get_simulated_dataset(result_idx)
+    return get_data_stats(datasets)
+
+
+def get_data_stats(datasets):
 
     data_stats_cols = ['all', 'non-fraud', 'fraud']
     data_stats = pd.DataFrame(columns=data_stats_cols)
