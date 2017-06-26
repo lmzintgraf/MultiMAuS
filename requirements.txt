@@ -4,4 +4,4 @@ pandas
 datetime
 mesa
 currencyconverter
-pyyaml
+pickle
