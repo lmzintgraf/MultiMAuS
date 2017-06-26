@@ -1,8 +1,8 @@
-from data import utils_data
 from simulator import parameters
 from simulator.transactions_unimaus import UniMausTransactionModel
 import time
 from simulator.customer_unimaus import GenuineCustomer, FraudulentCustomer
+from experiments.results import save_results
 
 
 def run_single():
@@ -21,12 +21,11 @@ def run_single():
     agent_vars = model.log_collector.get_agent_vars_dataframe()
     agent_vars.index = agent_vars.index.droplevel(1)
 
-    agent_vars.to_csv(utils_data.FILE_SIMULATOR_LOG, index_label=False)
-
     print('customers left:', len(model.customers))
     print('fraudsters left:', len(model.fraudsters))
-    print(utils_data.get_data_stats('simulator'))
     print('simulation took ', round((time.time() - start_time)/60., 2), ' minutes')
+
+    save_results(model)
 
 if __name__ == '__main__':
 
