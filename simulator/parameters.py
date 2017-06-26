@@ -19,18 +19,18 @@ def get_default_parameters():
         'end_date': datetime(2016, 12, 31),
 
         # how much noise we use in the simulation
-        'noise_level': 0.1,
+        'noise_level': [0.01, 0.1],
 
         # number of customers and fraudsters at beginning of simulation
         # (note that this doesn't really influence the total amount of transactions;
-        #  for that change the probabxility of making transactions)
-        'num_customers': 3333,
+        #  for that change the probability of making transactions)
+        'num_customers': 3000,
         'num_fraudsters': 55,
 
         # the intrinsic transaction motivation per customer (is proportional to number of customers/fraudsters)
-        # we keep this seperate because then we can play around with the number of customers/fraudsters,
+        # we keep this separate because then we can play around with the number of customers/fraudsters,
         # but individual behaviour doesn't change
-        'transaction_motivation': [1./3333, 1./55],
+        'transaction_motivation': [1./3000, 1./55],
 
         # number of fraud cards also used in genuine cards
         'fraud_cards_in_genuine': float(aggregated_data.loc['fraud cards in genuine', 'fraud']),
