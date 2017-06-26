@@ -1,8 +1,4 @@
 from simulator.customer_abstract import AbstractCustomer
-import string
-from datetime import timedelta
-import numpy as np
-from string import ascii_uppercase
 
 
 class UniMausCustomer(AbstractCustomer):
@@ -13,46 +9,49 @@ class UniMausCustomer(AbstractCustomer):
         :param transaction_model: 
         :param fraudster: 
         """
+
+        # copy model parameters to class
+        self.params = transaction_model.parameters.copy()
         super().__init__(unique_id, transaction_model, fraudster)
 
         # initialise probability of making a transaction per month/hour/...
-        self.noise_level = self.model.parameters['noise_level']
+        self.noise_level = self.params['noise_level'][self.fraudster]
 
         # average number of transaction per hour in general; varies per customer
-        self.avg_trans_per_hour = self.model.parameters['trans_per_year'][self.fraudster]
-        rand_addition = self.random_state.normal(0, self.noise_level * self.avg_trans_per_hour, 1)[0]
-        if np.abs(rand_addition) < self.avg_trans_per_hour:
-            self.avg_trans_per_hour += rand_addition
-        self.avg_trans_per_hour /= 366 * 24
+        trans_per_year = self.params['trans_per_year'][self.fraudster]
+        rand_addition = self.random_state.normal(0, self.noise_level * trans_per_year, 1)[0]
+        if trans_per_year + rand_addition > 0:
+            trans_per_year += rand_addition
+        self.avg_trans_per_hour = trans_per_year / 366 / 24
 
         # transaction probability per month
-        self.trans_prob_month = self.model.parameters['frac_month'][:, self.fraudster]
+        self.trans_prob_month = self.params['frac_month'][:, self.fraudster]
         self.trans_prob_month += self.random_state.normal(0, self.noise_level / 120, 12)
-
-        # transaction probability per hour
-        self.trans_prob_hour = self.model.parameters['frac_hour'][:, self.fraudster]
-        self.trans_prob_hour += self.random_state.normal(0, self.noise_level / 240, 24)
+        self.trans_prob_month[self.trans_prob_month < 0] = 0
 
         # transaction probability per day in month
-        self.trans_prob_monthday = self.model.parameters['frac_monthday'][:, self.fraudster]
-        self.trans_prob_monthday += self.random_state.normal(0, self.noise_level / 305, 31)
+        self.trans_prob_monthday = self.params['frac_monthday'][:, self.fraudster]
 
-        # transaction probability per weekday
-        self.trans_prob_weekday = self.model.parameters['frac_weekday'][:, self.fraudster]
+        # transaction probability per weekday (we assume this differs per individual)
+        self.trans_prob_weekday = self.params['frac_weekday'][:, self.fraudster]
         self.trans_prob_weekday += self.random_state.normal(0, self.noise_level / 70, 7)
+        self.trans_prob_weekday[self.trans_prob_weekday < 0] = 0
+
+        # transaction probability per hour (we assume this differs per individual)
+        self.trans_prob_hour = self.params['frac_hour'][:, self.fraudster]
+        self.trans_prob_hour += self.random_state.normal(0, self.noise_level / 240, 24)
+        self.trans_prob_hour[self.trans_prob_hour < 0] = 0
 
         # intrinsic motivation to make transaction
-        self.transaction_motivation = self.model.parameters['transaction_motivation'][self.fraudster]
-
-        # convert country to integer
-        self.country_int = int(''.join([str(string.ascii_uppercase.index(c)) for c in self.country]))
+        self.transaction_motivation = self.params['transaction_motivation'][self.fraudster]
+        self.transaction_motivation += self.random_state.normal(0, self.noise_level * self.transaction_motivation / 10, 1)[0]
 
     def initialise_country(self):
-        country_frac = self.model.parameters['country_frac']
+        country_frac = self.params['country_frac']
         return self.random_state.choice(country_frac.index.values, p=country_frac.iloc[:, self.fraudster].values)
 
     def initialise_currency(self):
-        currency_prob = self.model.parameters['currency_per_country'][self.fraudster]
+        currency_prob = self.params['currency_per_country'][self.fraudster]
         currency_prob = currency_prob.loc[self.country]
         return self.random_state.choice(currency_prob.index.values, p=currency_prob.values.flatten())
 
@@ -87,7 +86,7 @@ class UniMausCustomer(AbstractCustomer):
         Can be called at each transaction; will select a merchant to buy from.
         :return:    merchant ID
         """
-        merchant_prob = self.model.parameters['merchant_per_currency'][self.fraudster]
+        merchant_prob = self.params['merchant_per_currency'][self.fraudster]
         merchant_prob = merchant_prob.loc[self.currency]
         merchant_ID = self.random_state.choice(merchant_prob.index.values, p=merchant_prob.values.flatten())
         return [m for m in self.model.merchants if m.unique_id == merchant_ID][0]
@@ -103,7 +102,7 @@ class UniMausCustomer(AbstractCustomer):
         self.num_transactions += 1
 
     def decide_staying(self):
-        leave = (1-self.model.parameters['stay_prob'][self.fraudster]) > self.random_state.uniform(0, 1, 1)[0]
+        leave = (1-self.params['stay_prob'][self.fraudster]) > self.random_state.uniform(0, 1, 1)[0]
         if leave:
             self.stay = False
 
@@ -126,13 +125,13 @@ class GenuineCustomer(UniMausCustomer):
         """
         For a genuine customer, we add the option of leaving
         when the customer's card was subject to fraud
-        :return: 
+        :return:
         """
         do_trans = super().decide_making_transaction()
-        leave_after_fraud = (1-self.model.parameters['stay_after_fraud']) > self.random_state.uniform(0, 1, 1)[0]
+        leave_after_fraud = (1-self.params['stay_after_fraud']) > self.random_state.uniform(0, 1, 1)[0]
         if do_trans and self.card_corrupted and leave_after_fraud:
-                    do_trans = False
-                    self.stay = False
+            do_trans = False
+            self.stay = False
         return do_trans
 
 
@@ -151,12 +150,12 @@ class FraudulentCustomer(UniMausCustomer):
         or a completely new one (i.e., from customers unnknown to the processing platform)
         :return: 
         """
-        if self.model.parameters['fraud_cards_in_genuine'] > self.random_state.uniform(0, 1, 1)[0]:
+        if self.params['fraud_cards_in_genuine'] > self.random_state.uniform(0, 1, 1)[0]:
             # the fraudster picks a customer...
             # ... (1) from a familiar country
-            fraudster_countries = self.model.parameters['country_frac'].index[self.model.parameters['country_frac']['fraud'] !=0].values
+            fraudster_countries = self.params['country_frac'].index[self.params['country_frac']['fraud'] !=0].values
             # ... (2) from a familiar currency
-            fraudster_currencies = self.model.parameters['currency_per_country'][1].index.get_level_values(1).unique()
+            fraudster_currencies = self.params['currency_per_country'][1].index.get_level_values(1).unique()
             # ... (3) that has already made a transaction
             customers_active_ids = [c.unique_id for c in self.model.customers if c.num_transactions > 0]
             # now pick the fraud target (if there are no targets get own credit card)
