@@ -1,0 +1,21 @@
+,all,non-fraud,fraud
+transactions,90357,89194,1163
+transactions/hour,10.29,10.15,0.13
+transactions/day,246.88,243.7,3.18
+transactions/week,1737.63,1715.27,22.37
+transactions/month,7529.75,7432.83,96.92
+cards,54666,54133,799
+"cards, single use",35002,34873,543
+"cards, multi use",19664,19260,256
+fraud cards in genuine,-,-,0.33291614518147683
+first transaction,2015-12-31,2015-12-31,2016-03-02
+last transaction,2016-12-31,2016-12-31,2016-11-27
+min amount,0.44,0.44,1.0
+max amount,7835.56,7835.56,2737.02
+avg amount,295.4528805737242,298.50075688947686,61.701994840928634
+num merchants,7,7,6
+countries,126,126,19
+currencies,5,5,3
+min trans/card,1,1,1
+max trans/card,109,109,21
+avg trans/card,1.6528921084403467,1.6476825596216726,1.455569461827284
