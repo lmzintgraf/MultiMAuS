@@ -19,6 +19,10 @@ def update_result_idx(old_result_idx):
     f.close()
 
 
+def get_params_path(result_idx):
+    return join(FOLDER_RESULTS, '{}_parameters.pkl'.format(result_idx))
+
+
 def save_results(model):
 
     # create a folder to save results in
@@ -34,8 +38,7 @@ def save_results(model):
 
     # save the parameters
     parameters = model.parameters
-    parameter_file = join(FOLDER_RESULTS, '{}_parameters.pkl'.format(result_idx))
-    pickle.dump(parameters, open(parameter_file, 'wb'), pickle.HIGHEST_PROTOCOL)
+    pickle.dump(parameters, open(get_params_path(result_idx), 'wb'), pickle.HIGHEST_PROTOCOL)
 
     # save the transaction logs
     agent_vars = model.log_collector.get_agent_vars_dataframe()
@@ -47,4 +50,6 @@ def save_results(model):
 
     update_result_idx(result_idx)
 
-def get_result_parameters(result_idx):
+
+def get_parameters(result_idx):
+    return pickle.load(open(get_params_path(result_idx), 'rb'))
