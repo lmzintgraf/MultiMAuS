@@ -45,4 +45,7 @@ def run_test():
     print(df_test.head())
 
 if __name__ == '__main__':
+    #import cProfile
+
+    #cProfile.run('run_test()')
     run_test()
