@@ -16,7 +16,7 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
         super().__init__(unique_id, transaction_model)
 
         # internal random state (different for every customer0
-        self.random_state = np.random.RandomState(self.model.random_state.randint(0, 2**32 - 1))
+        self.random_state = np.random.RandomState(self.model.random_state.randint(0, np.iinfo(np.int32).max))
 
         # each customer has to say if it's a fraudster or not
         self.fraudster = int(fraudster)
