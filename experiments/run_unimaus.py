@@ -25,7 +25,7 @@ def run_single():
     print('fraudsters left:', len(model.fraudsters))
     print('simulation took ', round((time.time() - start_time)/60., 2), ' minutes')
 
-    result_handling(model)
+    result_handling.save_results(model)
 
 if __name__ == '__main__':
 
