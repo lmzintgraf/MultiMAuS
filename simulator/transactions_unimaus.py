@@ -1,6 +1,5 @@
 from simulator.merchant import Merchant
 from mesa.time import RandomActivation
-from simulator import parameters
 from simulator.log_collector import LogCollector
 from mesa import Model
 from datetime import timedelta
@@ -10,9 +9,6 @@ import numpy as np
 class UniMausTransactionModel(Model):
     def __init__(self, model_parameters, CustomerClass, FraudsterClass):
         super().__init__()
-
-        # make sure we didn't accidentally add new params anywhere
-        assert len(model_parameters) == len(parameters.get_default_parameters())
 
         # load parameters
         self.parameters = model_parameters
@@ -89,15 +85,16 @@ class UniMausTransactionModel(Model):
         self.immigration_fraudsters()
 
     def immigration_customers(self):
+
         fraudster = 0
 
-        noise_level = self.parameters['noise_level']
         # estimate how many genuine transactions there were
-        num_transactions = self.parameters['trans_per_year'][fraudster]
-        num_transactions /= 356 * 24
+        num_transactions = self.parameters['trans_per_year'][fraudster] / 366 / 24
+
         # scale by current month
         num_trans_month = num_transactions * 12 * self.parameters['frac_month'][self.curr_global_date.month - 1, fraudster]
-        num_transactions = (1 - noise_level) * num_trans_month + noise_level * num_transactions
+        num_transactions = (1 - self.parameters['noise_level'][fraudster]) * num_trans_month + \
+                           self.parameters['noise_level'][fraudster] * num_transactions
 
         # estimate how many customers on avg left
         num_customers_left = num_transactions * (1 - self.parameters['stay_prob'][fraudster])
@@ -116,14 +113,14 @@ class UniMausTransactionModel(Model):
         self.customers.extend([self.CustomerClass(self) for _ in range(num_customers_left)])
 
     def immigration_fraudsters(self):
+
         fraudster = 1
-        noise_level = self.parameters['noise_level']
         # estimate how many fraudulent transactions there were
-        num_transactions = self.parameters['trans_per_year'][fraudster]
-        num_transactions /= 356 * 24
+        num_transactions = self.parameters['trans_per_year'][fraudster] / 366 / 24
         # scale by current month
         num_trans_month = num_transactions * 12 * self.parameters['frac_month'][self.curr_global_date.month - 1, fraudster]
-        num_transactions = (1 - noise_level) * num_trans_month + noise_level * num_transactions
+        num_transactions = (1 - self.parameters['noise_level'][fraudster]) * num_trans_month + \
+                           self.parameters['noise_level'][fraudster] * num_transactions
 
         # estimate how many fraudsters on avg left
         num_fraudsters_left = num_transactions * (1 - self.parameters['stay_prob'][fraudster])
