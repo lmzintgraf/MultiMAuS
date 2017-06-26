@@ -2,7 +2,7 @@ from simulator import parameters
 from simulator.transactions_unimaus import UniMausTransactionModel
 import time
 from simulator.customer_unimaus import GenuineCustomer, FraudulentCustomer
-from experiments.results import result_handling
+from experiments import result_handling
 
 
 def run_single():
@@ -11,7 +11,7 @@ def run_single():
 
     # initialise the model with some parameters
     params = parameters.get_default_parameters()
-    model = UniMausTransactionModel(params, GeenuineCustomer, FraudulentCustomer)
+    model = UniMausTransactionModel(params, GenuineCustomer, FraudulentCustomer)
 
     # run the simulation until termination
     while not model.terminated:
