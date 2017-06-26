@@ -3,7 +3,6 @@
 __pycache__
 .idea
 data/real_data
-data/simulator_input
 data/simulator_log
 *.ipynb
 *.ipynb_checkpoints
