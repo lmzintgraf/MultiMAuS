@@ -30,17 +30,22 @@ class AggregateFeatures:
 
         :param training_data:
         """
+        print(str(datetime.now()), ": Init Aggregate Features...")
+
         self.country_all_dict, self.country_fraud_dict = self.compute_fraud_ratio_dicts(training_data, "Country")
+        print(str(datetime.now()), ": Finished computing country dicts...")
         self.first_order_times_dict = self.compute_first_order_times_dict(training_data)
+        print(str(datetime.now()), ": Finished computing First Order Times dict...")
 
         # unfortunately we kinda actually have to store the entire training dataset for some of the aggregate
         # features as described in [2]
         self.training_data = training_data
 
-        # TODO
-        '''
-        A bunch of interesting ideas in the Feature engineering strategies for credit card fraud detection paper
-        '''
+        # compute and store a mapping from card IDs to lists of transactions
+        # this is a bit expensive memory-wise, but will very significantly speed up feature construction
+        self.transactions_by_card_ids = {}
+        self.add_transactions_by_card_ids(training_data)
+        print(str(datetime.now()), ": Finished computing Transactions by Card IDs dict from training data...")
 
         # TODO
         '''
@@ -151,6 +156,11 @@ class AggregateFeatures:
         # make sure time-frames are sorted
         time_frames = sorted(time_frames)
 
+        if include_test_data_in_history:
+            # add all new transactions to our mapping from Card IDs to transactions
+            self.add_transactions_by_card_ids(data)
+            print(str(datetime.now()), ": Finished computing Transactions by Card IDs dict from test data...")
+
         # add our new columns, with all 0s by default
         for feature_type in ("Num", "Amt_Sum"):
             for time_frame in time_frames:
@@ -168,7 +178,6 @@ class AggregateFeatures:
         print(str(datetime.now()), ": Added all-zero columns")
 
         # now we have all the columns ready, and we can loop through rows, handling all features per row at once
-        row_idx = 0
         for row in data.itertuples():
             # date of the row we're adding features for
             row_date = row.Global_Date
@@ -177,26 +186,15 @@ class AggregateFeatures:
             row_card_id = row.CardID
 
             # select all training data with correct Card ID, and with a date earlier than row
-            if include_test_data_in_history:
-                # this should mean we're looping through test set which took place after training data,
-                # so we expect entire training set to be before row_date
-                hint = self.training_data.shape[0] - 1
-            else:
-                # this should mean we're looping through the training data, so we expect all previous rows
-                # to be before row_date
-                hint = row_idx - 1
-
-            matching_data = self.extract_transactions_before(self.training_data, row_date, hint=hint)
+            card_transactions = self.transactions_by_card_ids[row_card_id]
+            matching_data = self.extract_transactions_before(card_transactions, row_date)
 
             if matching_data is None:
-                row_idx += 1
                 continue
-
-            matching_data = matching_data.loc[(matching_data["CardID"] == row_card_id)]
 
             if include_test_data_in_history:
                 # also need to include parts of test data with earlier dates than the row we're adding features to
-                matching_test_data = self.extract_transactions_before(data, row_date, hint=(row_idx - 1))
+                matching_test_data = self.extract_transactions_before(data, row_date)
 
                 if matching_test_data is not None:
                     matching_test_data = matching_test_data.loc[matching_test_data["CardID"] == row_card_id]
@@ -233,9 +231,24 @@ class AggregateFeatures:
                     data.set_value(row.Index, col_name_num, conditional_matching_data.shape[0])
                     data.set_value(row.Index, col_name_amt, conditional_matching_data["Amount"].sum())
 
-            row_idx += 1
-
         return data
+
+    def add_transactions_by_card_ids(self, data):
+        """
+        Computes a dictionary, mapping from Card IDs to dataframes. For every unique card ID in the data,
+        we store a small dataframe of all transactions with that Card ID.
+
+        :param training_data:
+            Labelled training data
+        """
+        for card_id in data.CardID.unique():
+            if card_id not in self.transactions_by_card_ids:
+                # card ID not in map yet
+                self.transactions_by_card_ids[card_id] = data.loc[data["CardID"] == card_id]
+            else:
+                # card ID already in map, so should append
+                self.transactions_by_card_ids[card_id] = self.transactions_by_card_ids[card_id]\
+                    .append(data.loc[data["CardID"] == card_id], ignore_index=True)
 
     def compute_first_order_times_dict(self, training_data):
         """
