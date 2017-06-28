@@ -94,7 +94,7 @@ class UniMausTransactionModel(Model):
         # scale by current month
         num_trans_month = num_transactions * 12 * self.parameters['frac_month'][self.curr_global_date.month - 1, fraudster]
         num_transactions = (1 - self.parameters['noise_level']) * num_trans_month + \
-                           self.parameters['g_level'] * num_transactions
+                           self.parameters['noise_level'] * num_transactions
 
         # estimate how many customers on avg left
         num_customers_left = num_transactions * (1 - self.parameters['stay_prob'][fraudster])
