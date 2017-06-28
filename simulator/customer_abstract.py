@@ -2,6 +2,7 @@ from mesa import Agent
 from abc import ABCMeta, abstractmethod
 from pytz import timezone, country_timezones
 import numpy as np
+import copy
 
 
 class AbstractCustomer(Agent,  metaclass=ABCMeta):
@@ -14,6 +15,9 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
         """
         # call super init from mesa agent
         super().__init__(unique_id, transaction_model)
+
+        # copy parameters from model
+        self.params = copy.deepcopy(self.model.parameters)
 
         # internal random state (different for every customer0
         self.random_state = np.random.RandomState(self.model.random_state.randint(0, np.iinfo(np.int32).max))
