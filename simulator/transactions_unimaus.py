@@ -93,8 +93,8 @@ class UniMausTransactionModel(Model):
 
         # scale by current month
         num_trans_month = num_transactions * 12 * self.parameters['frac_month'][self.curr_global_date.month - 1, fraudster]
-        num_transactions = (1 - self.parameters['noise_level'][fraudster]) * num_trans_month + \
-                           self.parameters['noise_level'][fraudster] * num_transactions
+        num_transactions = (1 - self.parameters['noise_level']) * num_trans_month + \
+                           self.parameters['g_level'] * num_transactions
 
         # estimate how many customers on avg left
         num_customers_left = num_transactions * (1 - self.parameters['stay_prob'][fraudster])
@@ -104,7 +104,7 @@ class UniMausTransactionModel(Model):
             num_customers_left = int(np.round(num_customers_left, 0))
             num_customers_left = np.max([0, num_customers_left])
         else:
-            if num_customers_left > np.random.uniform(0, 1, 1)[0]:
+            if num_customers_left > self.random_state.uniform(0, 1, 1)[0]:
                 num_customers_left = 1
             else:
                 num_customers_left = 0
@@ -119,8 +119,8 @@ class UniMausTransactionModel(Model):
         num_transactions = self.parameters['trans_per_year'][fraudster] / 366 / 24
         # scale by current month
         num_trans_month = num_transactions * 12 * self.parameters['frac_month'][self.curr_global_date.month - 1, fraudster]
-        num_transactions = (1 - self.parameters['noise_level'][fraudster]) * num_trans_month + \
-                           self.parameters['noise_level'][fraudster] * num_transactions
+        num_transactions = (1 - self.parameters['noise_level']) * num_trans_month + \
+                           self.parameters['noise_level'] * num_transactions
 
         # estimate how many fraudsters on avg left
         num_fraudsters_left = num_transactions * (1 - self.parameters['stay_prob'][fraudster])
@@ -130,7 +130,7 @@ class UniMausTransactionModel(Model):
             num_fraudsters_left = int(np.round(num_fraudsters_left, 0))
             num_fraudsters_left = np.max([0, num_fraudsters_left])
         else:
-            if num_fraudsters_left > np.random.uniform(0, 1, 1)[0]:
+            if num_fraudsters_left > self.random_state.uniform(0, 1, 1)[0]:
                 num_fraudsters_left = 1
             else:
                 num_fraudsters_left = 0
