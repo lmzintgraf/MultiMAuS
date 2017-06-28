@@ -263,9 +263,12 @@ class AggregateFeatures:
         # add our new columns, with all 0s by default
         for time_frame in time_frames:
             new_col_name = "Prob_Density_Time_" + str(time_frame)
-            data[new_col_name] = 0.0
 
-        print(str(datetime.now()), ": Added all-zero columns for time-of-day features")
+            # 1.0 as default value is equivalent to assuming a completely uniform distribution over time
+            # in the absence of data
+            data[new_col_name] = 1.0
+
+        print(str(datetime.now()), ": Added all-one columns for time-of-day features")
 
         # now we have all the columns ready, and we can loop through rows, handling all features per row at once
         for row in data.itertuples():
@@ -316,8 +319,9 @@ class AggregateFeatures:
                     # sigma in [2] = 1 / kappa
                     kappa = self.estimate_von_mises_kappa(phi, psi, N)
 
-                prob_density_at_t = np.exp(kappa * np.cos(row_t - mu)) / (2 * np.pi * i0(kappa))
-                prob_density_at_mean = np.exp(kappa) / (2 * np.pi * i0(kappa))
+                i0_kappa = i0(kappa)
+                prob_density_at_t = np.exp(kappa * np.cos(row_t - mu)) / (2 * np.pi * i0_kappa)
+                prob_density_at_mean = np.exp(kappa) / (2 * np.pi * i0_kappa)
 
                 # add the feature
                 data.set_value(row.Index, "Prob_Density_Time_" + str(time_frame),

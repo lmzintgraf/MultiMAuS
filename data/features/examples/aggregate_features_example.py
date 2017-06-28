@@ -5,6 +5,8 @@ Example script for how to use the AggregateFeatures class
 """
 
 from data.features.aggregate_features import AggregateFeatures
+from data import utils_data
+from os.path import join
 import pandas as pd
 
 def run_test():
@@ -41,8 +43,11 @@ def run_test():
     # augment the test data with extra features. In this case, also allow it to be used as history
     aggregate_features.add_aggregate_features(df_test, include_test_data_in_history=True)
 
-    print(df_training.head())
-    print(df_test.head())
+    #print(df_training.head())
+    #print(df_test.head())
+
+    df_training.to_csv(join(utils_data.FOLDER_REAL_DATA, 'aggregate_features_training_data.csv'), index_label=False)
+    df_test.to_csv(join(utils_data.FOLDER_REAL_DATA, 'aggregate_features_test_data.csv'), index_label=False)
 
 if __name__ == '__main__':
     #import cProfile
