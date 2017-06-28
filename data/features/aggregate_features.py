@@ -18,6 +18,8 @@ Implementation is partially based on https://github.com/kb211/Fraud_Detection201
 
 from datetime import datetime
 from datetime import timedelta
+from scipy.special import i0
+import numpy as np
 import pandas as pd
 
 class AggregateFeatures:
@@ -105,8 +107,16 @@ class AggregateFeatures:
             lambda row: self.get_time_since_first_order(row=row), axis=1)
         print(str(datetime.now()), ": Finished adding Time Since First Order feature...")
 
+        if include_test_data_in_history:
+            # add all new transactions to our mapping from Card IDs to transactions
+            self.add_transactions_by_card_ids(data)
+            print(str(datetime.now()), ": Finished computing Transactions by Card IDs dict from test data...")
+
         data = self.add_historical_features(data, include_test_data_in_history)
         print(str(datetime.now()), ": Finished adding historical features")
+
+        data = self.add_time_of_day_features(data, include_test_data_in_history)
+        print(str(datetime.now()), ": Finished adding time-of-day features")
 
         return data
 
@@ -117,7 +127,7 @@ class AggregateFeatures:
         Adds multiple historical features to the given dataset. Explanation:
 
         For every row in data:
-            For every time-frame specified in time_frames:
+            For every time-frame (in hours) specified in time_frames:
                 For every tuple of column names specified in conditions:
                     We collect all historical transactions in training data (and also the given new dataset itself
                     if include_test_data_in_history=True) that still fit within the timeframe (in hours), have
@@ -137,8 +147,8 @@ class AggregateFeatures:
         :param include_test_data_in_history:
             If True, we also use early rows in the given data as potential ''historical data'' for subsequent rows
         :param time_frames:
-            List of all the time-frames for which we want to compute features. Default selection of time-frames
-            based on [2].
+            List of all the time-frames (in hours) for which we want to compute features. Default selection of
+            time-frames based on [2].
         :param conditions:
             A tuple of tuples of column names. Every tuple represents a condition. Historical transactions are only
             included in the set that features are computed from if they satisfy the condition. A condition is satisfied
@@ -156,11 +166,6 @@ class AggregateFeatures:
         # make sure time-frames are sorted
         time_frames = sorted(time_frames)
 
-        if include_test_data_in_history:
-            # add all new transactions to our mapping from Card IDs to transactions
-            self.add_transactions_by_card_ids(data)
-            print(str(datetime.now()), ": Finished computing Transactions by Card IDs dict from test data...")
-
         # add our new columns, with all 0s by default
         for feature_type in ("Num", "Amt_Sum"):
             for time_frame in time_frames:
@@ -175,7 +180,7 @@ class AggregateFeatures:
                     else:
                         data[new_col_name] = 0.0
 
-        print(str(datetime.now()), ": Added all-zero columns")
+        print(str(datetime.now()), ": Added all-zero columns for historical features")
 
         # now we have all the columns ready, and we can loop through rows, handling all features per row at once
         for row in data.itertuples():
@@ -191,14 +196,6 @@ class AggregateFeatures:
 
             if matching_data is None:
                 continue
-
-            if include_test_data_in_history:
-                # also need to include parts of test data with earlier dates than the row we're adding features to
-                matching_test_data = self.extract_transactions_before(data, row_date)
-
-                if matching_test_data is not None:
-                    matching_test_data = matching_test_data.loc[matching_test_data["CardID"] == row_card_id]
-                    matching_data = pd.concat([matching_data, matching_test_data], axis=0, ignore_index=True)
 
             # loop over our time-frames in reverse order, so that we can gradually cut out more and more data
             for time_frame_idx in range(len(time_frames) - 1, -1, -1):
@@ -230,6 +227,101 @@ class AggregateFeatures:
                     # now the conditional_matching_data is all we want for two new features
                     data.set_value(row.Index, col_name_num, conditional_matching_data.shape[0])
                     data.set_value(row.Index, col_name_amt, conditional_matching_data["Amount"].sum())
+
+        return data
+
+    def add_time_of_day_features(self, data, include_test_data_in_history=True,
+                                 time_frames=[7, 30, 60, 90]):
+        """
+        Adds multiple time-of-day features to the given dataset. Explanation:
+
+        For every row in data:
+            For every time-frame (in days) specified in time_frames:
+                We collect all historical transactions in training data (and also the given new dataset itself
+                if include_test_data_in_history=True) that still fit within the timeframe (in days), and have
+                the same Card ID as row. Based on this set of recent, related transactions (related through Card ID),
+                we estimate a Von Mises distribution describing when the Card ID is typically used for transactions.
+
+                For every new transaction (row), the feature we construct is the probability density of the Von Mises
+                distribution at the given time divided by the probability density of the Von Mises distribution at the
+                mean (which is the maximum of the probability density function).
+
+        This is mostly based on Section 3.2 of [2], and implementation based on [3]
+
+        :param data:
+            Dataset to augment with extra features
+        :param include_test_data_in_history:
+            If True, we also use early rows in the given data as potential ''historical data'' for subsequent rows
+        :param time_frames:
+            List of all the time-frames for which we want to compute features.
+        :return:
+            The dataset, augmented with new features (features added in-place)
+        """
+        # make sure time-frames are sorted
+        time_frames = sorted(time_frames)
+
+        # add our new columns, with all 0s by default
+        for time_frame in time_frames:
+            new_col_name = "Prob_Density_Time_" + str(time_frame)
+            data[new_col_name] = 0.0
+
+        print(str(datetime.now()), ": Added all-zero columns for time-of-day features")
+
+        # now we have all the columns ready, and we can loop through rows, handling all features per row at once
+        for row in data.itertuples():
+            # date of the row we're adding features for
+            row_date = row.Global_Date
+
+            # the Card ID of the row we're adding features for
+            row_card_id = row.CardID
+
+            # select all training data with correct Card ID, and with a date earlier than row
+            card_transactions = self.transactions_by_card_ids[row_card_id]
+            matching_data = self.extract_transactions_before(card_transactions, row_date)
+
+            if matching_data is None:
+                continue
+
+            # loop over our time-frames in reverse order, so that we can gradually cut out more and more data
+            for time_frame_idx in range(len(time_frames) - 1, -1, -1):
+                time_frame = time_frames[time_frame_idx]
+
+                # reduce matching data to part that fits within this time frame
+                earliest_allowed_date = row_date - timedelta(days=time_frame)
+                matching_data = self.extract_transactions_after(matching_data, earliest_allowed_date)
+
+                if matching_data is None:
+                    break
+
+                # Important to use Local_Date here! When analysing what's normal behaviour for the customer,
+                # we care about their local time.
+                time_angles = [self.time_to_circle(transaction.Local_Date)
+                               for transaction in matching_data.itertuples()]
+
+                row_t = self.time_to_circle(row.Local_Date)
+
+                N = len(time_angles)
+
+                if N == 0:
+                    mu = row_t
+                    kappa = 0.001
+                else:
+                    # following estimation of mu looks different from what's described in [2], but is actually
+                    # equivalent, see: https://en.wikipedia.org/wiki/Atan2#Definition_and_computation (expression
+                    # derived from the tangent half-angle formula)
+                    phi = sum([np.sin(val) for val in time_angles])
+                    psi = sum([np.cos(val) for val in time_angles])
+                    mu = np.arctan2(phi, psi)
+
+                    # sigma in [2] = 1 / kappa
+                    kappa = self.estimate_von_mises_kappa(phi, psi, N)
+
+                prob_density_at_t = np.exp(kappa * np.cos(row_t - mu)) / (2 * np.pi * i0(kappa))
+                prob_density_at_mean = np.exp(kappa) / (2 * np.pi * i0(kappa))
+
+                # add the feature
+                data.set_value(row.Index, "Prob_Density_Time_" + str(time_frame),
+                               prob_density_at_t / prob_density_at_mean)
 
         return data
 
@@ -299,6 +391,33 @@ class AggregateFeatures:
                 fraud_transactions_dict[key] = 0
 
         return all_transactions_dict, fraud_transactions_dict
+
+    def estimate_von_mises_kappa(self, phi, psi, N):
+        """
+        Helper function to estimate the kappa parameter of a Von Mises distribution
+
+        Implementation partially based on [3]
+
+        :param phi:
+            Sum of sines
+        :param psi:
+            Sum of cosines
+        :param N:
+            Sample size
+        :return:
+            Estimate of kappa (with some special cases covered for improved numeric stability. Essentially
+            this introduces a bias towards uniform distributions for low N)
+        """
+        denominator = ((((1. / N) * phi) ** 2) + (((1. / N) * psi) ** 2))
+        denominator = min(max(0.0001, denominator), 0.9999)
+
+        kappa = 1. / np.sqrt(np.log(1. / denominator))
+
+        # if we have low N, we want to bias towards low kappa (prior assumption of more uniform distribution)
+        if N < 5:
+            kappa = min(1 - (1 / N), kappa)
+
+        return kappa
 
     def extract_transactions_before(self, data, date, hint=-1):
         """
@@ -468,3 +587,19 @@ class AggregateFeatures:
                 return 1
             else:
                 return 0
+
+    def time_to_circle(self, time):
+        """
+        Helper function which a point in time (date) to a point on a circle (a 24-hour circle)
+
+        Thanks for the implementation Kasper [3]
+
+        :param time:
+            Time (date) to convert
+        :return:
+            Angle representing point on circle
+        """
+        hour_float = \
+            time.hour + time.minute / 60.0 + time.second / (60.0 * 60.0) + time.microsecond / (60.0 * 60.0 * 1000000.0)
+
+        return hour_float / 12 * np.pi - np.pi
