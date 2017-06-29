@@ -1,6 +1,8 @@
 from os.path import isdir, join, dirname, exists
 from os import mkdir
 import pickle
+import numpy as np
+
 
 FOLDER_RESULTS = join(dirname(__file__), 'results')
 FILE_RESULTS_IDX = join(FOLDER_RESULTS, 'curr_idx.txt')
@@ -45,6 +47,23 @@ def save_results(model):
     agent_vars.index = agent_vars.index.droplevel(1)
     path_transaction_log = join(FOLDER_RESULTS, '{}_transaction_log.csv'.format(result_idx))
     agent_vars.to_csv(path_transaction_log, index_label=False)
+
+    # save some customer properties
+    FOLDER_CUST_PROPS = join(FOLDER_RESULTS, '{}_cust_props'.format(result_idx))
+    mkdir(FOLDER_CUST_PROPS)
+
+    for i in range(5):
+        # for customers
+        np.save(join(FOLDER_CUST_PROPS, 'cust{}_trans_prob_monthday'.format(i)), model.customers[i].trans_prob_monthday)
+        np.save(join(FOLDER_CUST_PROPS, 'cust{}_trans_prob_month'.format(i)), model.customers[i].trans_prob_month)
+        np.save(join(FOLDER_CUST_PROPS, 'cust{}_trans_prob_hour'.format(i)), model.customers[i].trans_prob_hour)
+        np.save(join(FOLDER_CUST_PROPS, 'cust{}_trans_prob_weekday'.format(i)), model.customers[i].trans_prob_weekday)
+
+        # for fraudsters
+        np.save(join(FOLDER_CUST_PROPS, 'fraud{}_trans_prob_monthday'.format(i)), model.fraudsters[i].trans_prob_monthday)
+        np.save(join(FOLDER_CUST_PROPS, 'fraud{}_trans_prob_month'.format(i)), model.fraudsters[i].trans_prob_month)
+        np.save(join(FOLDER_CUST_PROPS, 'fraud{}_trans_prob_hour'.format(i)), model.fraudsters[i].trans_prob_hour)
+        np.save(join(FOLDER_CUST_PROPS, 'fraud{}_trans_prob_weekday'.format(i)), model.fraudsters[i].trans_prob_weekday)
 
     print("saved results under result index {}".format(result_idx))
 
