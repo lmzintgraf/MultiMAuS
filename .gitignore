@@ -4,5 +4,6 @@ __pycache__
 .idea
 data/real_data
 data/simulator_log
+experiments/results
 *.ipynb
 *.ipynb_checkpoints
