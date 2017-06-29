@@ -46,7 +46,8 @@ class OnlineUnimaus:
         if clear_after:
             agent_vars = self.model.log_collector.agent_vars
             for reporter_name in agent_vars:
-                agent_vars[reporter_name] = []
+                for agent_records in agent_vars[reporter_name]:
+                    agent_records.clear()
 
         return log
 
