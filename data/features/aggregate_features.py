@@ -310,9 +310,21 @@ class AggregateFeatures:
                     # sigma in [2] = 1 / kappa
                     kappa = self.estimate_von_mises_kappa(phi, psi, N)
 
+                '''
+                The commented code correctly computes the actual values of the probability density function
+                at t and at the mean. However, they share the same denominator. Because we finally divide
+                these two numbers by each other, those two equal denominators cancel out. Therefore, we can
+                save the computation time and simply not compute them. So, be aware that, even though we use
+                the variable names prob_density_at_t and prob_density_at_mean in the code that is not commented
+                out, they're actually different values
+
                 i0_kappa = i0(kappa)
                 prob_density_at_t = np.exp(kappa * np.cos(row_t - mu)) / (2 * np.pi * i0_kappa)
                 prob_density_at_mean = np.exp(kappa) / (2 * np.pi * i0_kappa)
+                '''
+
+                prob_density_at_t = np.exp(kappa * np.cos(row_t - mu))
+                prob_density_at_mean = np.exp(kappa)
 
                 # add the feature
                 data.set_value(row.Index, "Prob_Density_Time_" + str(time_frame),
