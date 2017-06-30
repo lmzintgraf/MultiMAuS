@@ -36,12 +36,9 @@ class AggregateFeatures:
 
         self.country_all_dict, self.country_fraud_dict = self.compute_fraud_ratio_dicts(training_data, "Country")
         print(str(datetime.now()), ": Finished computing country dicts...")
-        self.first_order_times_dict = self.compute_first_order_times_dict(training_data)
+        self.first_order_times_dict = {}
+        self.compute_first_order_times_dict(training_data)
         print(str(datetime.now()), ": Finished computing First Order Times dict...")
-
-        # unfortunately we kinda actually have to store the entire training dataset for some of the aggregate
-        # features as described in [2]
-        self.training_data = training_data
 
         # compute and store a mapping from card IDs to lists of transactions
         # this is a bit expensive memory-wise, but will very significantly speed up feature construction
@@ -49,15 +46,22 @@ class AggregateFeatures:
         self.add_transactions_by_card_ids(training_data)
         print(str(datetime.now()), ": Finished computing Transactions by Card IDs dict from training data...")
 
-        # TODO
-        '''
-        It may be useful to add support for updating aggregate statistics with individual new transactions after
-        first ''training'' it on a large training set. This could be used to update aggregate statistics in real-
-        time using transactions for which we obtain labels in real-time (transactions which are investigated
-        by human experts for example)
-        '''
+    def update_unlabeled(self, new_data):
+        """
+        Updates aggregate data from new, unlabeled data. The effect of doing this is similar to
+        what would happen if a completely new object were constructed, with new_data appended
+        to the original training_data. The difference is that this data is allowed to be unlabeled.
+        This basically means that the new data is not used to update risk scores for countries (don't
+        have labels for this new data, so can't update those scores), but it is used for all other
+        feature engineering supported by this class (which does not depend on labels)
 
-    def add_aggregate_features(self, data, include_test_data_in_history=True):
+        :param new_data:
+            New (unlabeled) data used to update aggregate data
+        """
+        self.compute_first_order_times_dict(new_data)
+        self.add_transactions_by_card_ids(new_data)
+
+    def add_aggregate_features(self, data):
         """
         Adds all aggregate features to the given dataset.
 
@@ -72,10 +76,6 @@ class AggregateFeatures:
 
         :param data:
             Data to augment with aggregate features
-        :param include_test_data_in_history:
-            If true, the given data itself will also be treated as potential ''historic'' data (early
-            rows in the data can be used as history for rows with same Card IDs later in the data). If
-            false, only the training data passed into constructor will be used as history.
         :return:
             Augmented version of the dataset (features added in-place, so no need to capture return value)
         """
@@ -107,20 +107,15 @@ class AggregateFeatures:
             lambda row: self.get_time_since_first_order(row=row), axis=1)
         print(str(datetime.now()), ": Finished adding Time Since First Order feature...")
 
-        if include_test_data_in_history:
-            # add all new transactions to our mapping from Card IDs to transactions
-            self.add_transactions_by_card_ids(data)
-            print(str(datetime.now()), ": Finished computing Transactions by Card IDs dict from test data...")
-
-        data = self.add_historical_features(data, include_test_data_in_history)
+        data = self.add_historical_features(data)
         print(str(datetime.now()), ": Finished adding historical features")
 
-        data = self.add_time_of_day_features(data, include_test_data_in_history)
+        data = self.add_time_of_day_features(data)
         print(str(datetime.now()), ": Finished adding time-of-day features")
 
         return data
 
-    def add_historical_features(self, data, include_test_data_in_history=True,
+    def add_historical_features(self, data,
                                 time_frames=[1, 3, 6, 12, 18, 24, 72, 168],
                                 conditions=((), ('MerchantID',), ("Country",))):
         """
@@ -144,8 +139,6 @@ class AggregateFeatures:
 
         :param data:
             Dataset to augment with extra features
-        :param include_test_data_in_history:
-            If True, we also use early rows in the given data as potential ''historical data'' for subsequent rows
         :param time_frames:
             List of all the time-frames (in hours) for which we want to compute features. Default selection of
             time-frames based on [2].
@@ -230,7 +223,7 @@ class AggregateFeatures:
 
         return data
 
-    def add_time_of_day_features(self, data, include_test_data_in_history=True,
+    def add_time_of_day_features(self, data,
                                  time_frames=[7, 30, 60, 90]):
         """
         Adds multiple time-of-day features to the given dataset. Explanation:
@@ -250,8 +243,6 @@ class AggregateFeatures:
 
         :param data:
             Dataset to augment with extra features
-        :param include_test_data_in_history:
-            If True, we also use early rows in the given data as potential ''historical data'' for subsequent rows
         :param time_frames:
             List of all the time-frames for which we want to compute features.
         :return:
@@ -334,7 +325,7 @@ class AggregateFeatures:
         Computes a dictionary, mapping from Card IDs to dataframes. For every unique card ID in the data,
         we store a small dataframe of all transactions with that Card ID.
 
-        :param training_data:
+        :param data:
             Labelled training data
         """
         for card_id in data.CardID.unique():
@@ -353,17 +344,12 @@ class AggregateFeatures:
 
         :param training_data:
             Labelled training data
-        :return:
-            Dictionary, with card IDs as keys, and dates of first transactions as values
         """
-        first_order_times_dict = {}
         for row in training_data.itertuples():
             card = row.CardID
 
-            if card not in first_order_times_dict:
-                first_order_times_dict[card] = row.Global_Date
-
-        return first_order_times_dict
+            if card not in self.first_order_times_dict:
+                self.first_order_times_dict[card] = row.Global_Date
 
     def compute_fraud_ratio_dicts(self, training_data, column):
         """

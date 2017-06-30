@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+from datetime import datetime
 from sklearn import linear_model
 
 def run_test():
@@ -45,9 +46,11 @@ def run_test():
     graph_features = ApateGraphFeatures(df_feature_learning)
 
     # augment our model learning dataset with extra features
+    print(str(datetime.now()), ": Starting computation of APATE graph features for model learning data...")
     graph_features.add_graph_features(df_model_learning)
 
     # augment our test dataset with extra features
+    print(str(datetime.now()), ": Starting computation of APATE graph features for test data...")
     graph_features.add_graph_features(df_test)
 
     # remove features which we no longer want to use in machine learning
