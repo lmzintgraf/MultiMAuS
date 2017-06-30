@@ -25,10 +25,19 @@ class OnlineUnimaus:
         :param params:
             Parameters passed on to the UniMausTransactionModel. Will use the default parameters if None
         """
-        if params == None:
+        if params is None:
             params = parameters.get_default_parameters()
 
         self.model = UniMausTransactionModel(params, GenuineCustomer, FraudulentCustomer)
+
+    def clear_log(self):
+        """
+        Clears all transactions generated so far from memory
+        """
+        agent_vars = self.model.log_collector.agent_vars
+        for reporter_name in agent_vars:
+            for agent_records in agent_vars[reporter_name]:
+                agent_records.clear()
 
     def get_log(self, clear_after=True):
         """
@@ -44,10 +53,7 @@ class OnlineUnimaus:
         log.index = log.index.droplevel(1)
 
         if clear_after:
-            agent_vars = self.model.log_collector.agent_vars
-            for reporter_name in agent_vars:
-                for agent_records in agent_vars[reporter_name]:
-                    agent_records.clear()
+            self.clear_log()
 
         return log
 

@@ -52,5 +52,8 @@ def run_test():
 if __name__ == '__main__':
     #import cProfile
 
-    #cProfile.run('run_test()')
+    #pr = cProfile.Profile()
+    #pr.enable()
     run_test()
+    #pr.disable()
+    #pr.print_stats(sort='cumtime')

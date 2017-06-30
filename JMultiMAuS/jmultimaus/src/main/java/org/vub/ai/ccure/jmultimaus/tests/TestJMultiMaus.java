@@ -29,6 +29,7 @@ public class TestJMultiMaus {
 		PyModule onlineSimulatorModule = PyModule.importModule("experiments.run_online_unimaus");
 		PyObject simulator = onlineSimulatorModule.call("OnlineUnimaus");
 		simulator.callMethod("step_simulator");
+		System.out.println(simulator.callMethod("get_log").getAttribute("Global_Date"));
 		
 		PyLib.stopPython();
 	}
