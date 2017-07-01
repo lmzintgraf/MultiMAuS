@@ -56,7 +56,7 @@ def run_single():
     check_parameter_consistency(params)
 
     # save the results
-    result_handling.save_results(model)
+    result_handling.save_unimaus_results(model)
 
 if __name__ == '__main__':
 

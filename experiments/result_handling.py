@@ -25,7 +25,7 @@ def get_params_path(result_idx):
     return join(FOLDER_RESULTS, '{}_parameters.pkl'.format(result_idx))
 
 
-def save_results(model):
+def save_unimaus_results(model):
 
     # create a folder to save results in
     if not isdir(FOLDER_RESULTS):
@@ -69,6 +69,12 @@ def save_results(model):
 
     update_result_idx(result_idx)
 
+
+def save_multimaus_results(model):
+
+    save_unimaus_results(model)
+
+    # TODO
 
 def get_parameters(result_idx):
     return pickle.load(open(get_params_path(result_idx), 'rb'))
