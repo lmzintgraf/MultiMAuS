@@ -169,8 +169,6 @@ class FraudulentCustomer(UniMausCustomer):
                 card = customer.card_id
                 self.country = customer.country
                 self.currency = customer.currency
-                # tell customer card's been corrupted
-                customer.card_got_corrupted()
             except ValueError:
                 card = super().initialise_card_id()
         else:
