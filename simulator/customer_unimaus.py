@@ -26,32 +26,26 @@ class UniMausCustomer(AbstractCustomer):
 
         # transaction probability per month
         self.trans_prob_month = self.params['frac_month'][:, self.fraudster]
-        self.trans_prob_month = self.add_noise(self.trans_prob_month, 1./12)
+        self.trans_prob_month = self.random_state.multivariate_normal(self.trans_prob_month, np.eye(12) * self.noise_level / 1200, 1)[0]
+        self.trans_prob_month[self.trans_prob_month < 0] = 0
 
         # transaction probability per day in month
-
         self.trans_prob_monthday = self.params['frac_monthday'][:, self.fraudster]
-        self.trans_prob_monthday = self.add_noise(self.trans_prob_monthday, 1./30.5)
+        self.trans_prob_monthday = self.random_state.multivariate_normal(self.trans_prob_monthday, np.eye(31) * self.noise_level / 305, 1)[0]
+        self.trans_prob_monthday[self.trans_prob_monthday < 0] = 0
 
         # transaction probability per weekday (we assume this differs per individual)
         self.trans_prob_weekday = self.params['frac_weekday'][:, self.fraudster]
-        self.trans_prob_weekday = self.add_noise(self.trans_prob_weekday, 1./7)
+        self.trans_prob_weekday = self.random_state.multivariate_normal(self.trans_prob_weekday, np.eye(7) * self.noise_level / 70, 1)[0]
+        self.trans_prob_weekday[self.trans_prob_weekday < 0] = 0
 
         # transaction probability per hour (we assume this differs per individual)
         self.trans_prob_hour = self.params['frac_hour'][:, self.fraudster]
-        self.trans_prob_hour = self.add_noise(self.trans_prob_hour, 1./24)
+        self.trans_prob_hour = self.random_state.multivariate_normal(self.trans_prob_hour, np.eye(24) * self.noise_level / 240, 1)[0]
+        self.trans_prob_hour[self.trans_prob_hour < 0] = 0
 
         # intrinsic motivation to make transaction
         self.transaction_motivation = self.params['transaction_motivation'][self.fraudster]
-
-    def add_noise(self, vect, std):
-        rand_addition = self.random_state.normal(0, self.noise_level * std, len(vect))
-        cond1 = np.abs(rand_addition) > vect + self.noise_level  # we don't want negative probabilities but still center around 0
-        cond2 = vect != 0  # this makes sure that nonzero priors can be positive sometimes
-        rand_addition[np.logical_and(cond1, cond2)] = 0
-        vect += rand_addition
-        vect[vect < 0] = 0
-        return vect
 
     def initialise_country(self):
         country_frac = self.params['country_frac']
@@ -128,6 +122,9 @@ class GenuineCustomer(UniMausCustomer):
         # add field for whether the credit card was corrupted by a fraudster
         self.card_corrupted = False
 
+    def card_got_corrupted(self):
+        self.card_corrupted = True
+
     def decide_making_transaction(self):
         """
         For a genuine customer, we add the option of leaving
@@ -173,7 +170,7 @@ class FraudulentCustomer(UniMausCustomer):
                 self.country = customer.country
                 self.currency = customer.currency
                 # tell customer card's been corrupted
-                customer.card_corrupted = True
+                customer.card_got_corrupted()
             except ValueError:
                 card = super().initialise_card_id()
         else:
