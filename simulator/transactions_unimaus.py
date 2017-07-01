@@ -61,6 +61,9 @@ class UniMausTransactionModel(Model):
         self.schedule.agents.extend(self.fraudsters)
         self.schedule.step()
 
+        # inform the customers who's card got corrupted
+        self.inform_attacked_customers()
+
         # write new transactions to log
         self.log_collector.collect(self)
 
@@ -73,6 +76,12 @@ class UniMausTransactionModel(Model):
         # check if termination criterion met
         if self.curr_global_date.date() > self.parameters['end_date'].date():
             self.terminated = True
+
+    def inform_attacked_customers(self):
+        fraud_card_ids = [f.card_id for f in self.fraudsters if f.active]
+        for customer in self.customers:
+            if customer.card_id in fraud_card_ids:
+                customer.card_got_corrupted()
 
     def customer_migration(self):
 
