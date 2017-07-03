@@ -50,15 +50,38 @@ public class TestJMultiMaus {
 				wrappedData.callMethod("get_column_names").
 				getObjectArrayValue(String.class)));
 		
-		System.out.println("num rows = " + wrappedData.callMethod("get_num_rows").getIntValue());
-		System.out.println("num cols = " + wrappedData.callMethod("get_num_cols").getIntValue());
+		int numRows = wrappedData.callMethod("get_num_rows").getIntValue();
+		int numCols = wrappedData.callMethod("get_num_cols").getIntValue();
+		System.out.println("num rows = " + numRows);
+		System.out.println("num cols = " + numCols);
 		
+		Double[] dataList = wrappedData.callMethod("get_data_list").getObjectArrayValue(Double.class);
 		System.out.println();
-		System.out.println("Data list = " + Arrays.toString(
-				wrappedData.callMethod("get_data_list").
-				getObjectArrayValue(Double.class)));
+		System.out.println("Data list = " + Arrays.toString(dataList));
+		
+		double[][] matrix = listToMatrix(dataList, numRows, numCols);
+		for(int row = 0; row < numRows; ++row){
+			StringBuilder rowString = new StringBuilder();
+			for(int col = 0; col < numCols; ++col){
+				rowString.append(matrix[row][col] + ", ");
+			}
+			
+			System.out.println(rowString);
+		}
 		
 		PyLib.stopPython();
+	}
+	
+	public static double[][] listToMatrix(Double[] list, int numRows, int numCols){
+		double[][] matrix = new double[numRows][numCols];
+		
+		for(int row = 0; row < numRows; ++row){
+			for(int col = 0; col < numCols; ++col){
+				matrix[row][col] = list[row * numCols + col];
+			}
+		}
+		
+		return matrix;
 	}
 
 }
