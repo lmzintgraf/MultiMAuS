@@ -1,6 +1,7 @@
 package org.vub.ai.ccure.jmultimaus.tests;
 
 import java.io.File;
+import java.util.Arrays;
 
 import org.jpy.PyLib;
 import org.jpy.PyModule;
@@ -28,8 +29,34 @@ public class TestJMultiMaus {
 		
 		PyModule onlineSimulatorModule = PyModule.importModule("experiments.run_online_unimaus");
 		PyObject simulator = onlineSimulatorModule.call("OnlineUnimaus");
+		
+		// generate data to prepare feature constructors
 		simulator.callMethod("step_simulator");
-		System.out.println(simulator.callMethod("get_log").getAttribute("Global_Date"));
+		PyObject data = simulator.callMethod("get_log");
+		simulator.callMethod("prepare_feature_constructors", data);
+		
+		// generate data that we can compute new features for
+		simulator.callMethod("step_simulator");
+		data = simulator.callMethod("get_log");
+		simulator.callMethod("update_feature_constructors_unlabeled", data);
+		
+		// process the data (add features)
+		data = simulator.callMethod("process_data", data);
+		
+		// wrap the data in an object with all the methods we need
+		PyObject wrappedData = onlineSimulatorModule.call("DataLogWrapper", data);
+		
+		System.out.println("Column names = " + Arrays.toString(
+				wrappedData.callMethod("get_column_names").
+				getObjectArrayValue(String.class)));
+		
+		System.out.println("num rows = " + wrappedData.callMethod("get_num_rows").getIntValue());
+		System.out.println("num cols = " + wrappedData.callMethod("get_num_cols").getIntValue());
+		
+		System.out.println();
+		System.out.println("Data list = " + Arrays.toString(
+				wrappedData.callMethod("get_data_list").
+				getObjectArrayValue(Double.class)));
 		
 		PyLib.stopPython();
 	}
