@@ -35,6 +35,13 @@ class UniMausCustomer(AbstractCustomer):
         :return: 
         """
 
+        trans_prob = self.get_curr_transaction_prob()
+
+        make_transaction = trans_prob > self.random_state.uniform(0, 1, 1)[0]
+
+        return make_transaction
+
+    def get_curr_transaction_prob(self):
         # get the current local time
         local_datetime = self.get_local_datetime()
 
@@ -47,9 +54,7 @@ class UniMausCustomer(AbstractCustomer):
         trans_prob *= 30.5 * self.trans_prob_monthday[local_datetime.day - 1]
         trans_prob *= 7 * self.trans_prob_weekday[local_datetime.weekday()]
 
-        make_transaction = trans_prob > self.random_state.uniform(0, 1, 1)[0]
-
-        return make_transaction
+        return trans_prob
 
     def perform_transaction(self):
         """
