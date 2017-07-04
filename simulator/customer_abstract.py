@@ -38,9 +38,6 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
         self.curr_amount = None
         self.curr_local_date = None
 
-        # count how many transactions customer has made already
-        self.num_transactions = 0
-
         # variable tells us whether the customer wants to stay after current transaction
         self.stay = True
 
@@ -56,16 +53,41 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
 
         # decide whether to make transaction or not
         if self.decide_making_transaction():
-            if self.num_transactions == 0:
+            if self.card_id is None:
                 self.card_id = self.initialise_card_id()
             self.active = True
             self.make_transaction()
             self.decide_staying()
-            self.num_transactions += 1
         else:
             self.active = False
             self.curr_merchant = None
             self.curr_amount = None
+
+    @abstractmethod
+    def decide_making_transaction(self):
+        """
+        Decide whether to make transaction or not, given the current time step
+        :return:    Boolean indicating whether to make transaction or not
+        """
+        pass
+
+    @abstractmethod
+    def make_transaction(self):
+        """
+        Make a transaction. Called when decide_making_transaction returns True
+        Should update these variables:
+            self.curr_merchant, 
+            self.curr_transaction_amount
+        """
+        pass
+
+    @abstractmethod
+    def decide_staying(self):
+        """ 
+        At a given point in time, decide whether or not to make another transaction in the future.
+        :return:    Boolean indicating whether to make another transaction (stay=True) or not
+        """
+        pass
 
     @abstractmethod
     def initialise_country(self):
@@ -88,29 +110,5 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
         """ 
         Select creditcard number (unique ID) for customer
         :return:    credit card number
-        """
-        pass
-
-    @abstractmethod
-    def decide_making_transaction(self):
-        """
-        Decide whether to make transaction or not, given the current time step
-        :return:    Boolean indicating whether to make transaction or not
-        """
-        pass
-
-    @abstractmethod
-    def make_transaction(self):
-        """
-        Make a transaction. Should update these variables:
-            self.curr_merchant, self.curr_transaction_amount
-        """
-        pass
-
-    @abstractmethod
-    def decide_staying(self):
-        """ 
-        At a given point in time, decide whether or not to make another transaction in the future.
-        :return:    Boolean indicating whether to make another transaction (stay=True) or not
         """
         pass
