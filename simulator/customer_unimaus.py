@@ -12,7 +12,7 @@ class UniMausCustomer(AbstractCustomer):
         :param fraudster: 
         """
 
-        unique_id = self.model.get_next_customer_id(self.fraudster)
+        unique_id = transaction_model.get_next_customer_id(fraudster)
         super().__init__(unique_id, transaction_model, fraudster)
 
         # initialise probability of making a transaction per month/hour/...
@@ -42,17 +42,18 @@ class UniMausCustomer(AbstractCustomer):
         return make_transaction
 
     def get_curr_transaction_prob(self):
+
         # get the current local time
-        local_datetime = self.get_local_datetime()
+        self.local_datetime = self.get_local_datetime()
 
         # get the average transactions per hour
         trans_prob = self.avg_trans_per_hour
 
         # now weigh by probabilities of transactions per month/week/...
-        trans_prob *= 12 * self.trans_prob_month[local_datetime.month - 1]
-        trans_prob *= 24 * self.trans_prob_hour[local_datetime.hour]
-        trans_prob *= 30.5 * self.trans_prob_monthday[local_datetime.day - 1]
-        trans_prob *= 7 * self.trans_prob_weekday[local_datetime.weekday()]
+        trans_prob *= 12 * self.trans_prob_month[self.local_datetime.month - 1]
+        trans_prob *= 24 * self.trans_prob_hour[self.local_datetime.hour]
+        trans_prob *= 30.5 * self.trans_prob_monthday[self.local_datetime.day - 1]
+        trans_prob *= 7 * self.trans_prob_weekday[self.local_datetime.weekday()]
 
         return trans_prob
 
@@ -71,7 +72,7 @@ class UniMausCustomer(AbstractCustomer):
         local_datetime = local_datetime.replace(tzinfo=None)
         return local_datetime
 
-    def pick_curr_merchant(self):
+    def get_curr_merchant(self):
         """
         Can be called at each transaction; will select a merchant to buy from.
         :return:    merchant ID
@@ -81,7 +82,7 @@ class UniMausCustomer(AbstractCustomer):
         merchant_ID = self.random_state.choice(merchant_prob.index.values, p=merchant_prob.values.flatten())
         return [m for m in self.model.merchants if m.unique_id == merchant_ID][0]
 
-    def pick_curr_amount(self):
+    def get_curr_amount(self):
         return self.curr_merchant.get_amount(self)
 
     def stay_after_transaction(self):
@@ -168,7 +169,7 @@ class UniMausFraudulentCustomer(UniMausCustomer):
             # ... (2) from a familiar currency
             fraudster_currencies = self.params['currency_per_country'][1].index.get_level_values(1).unique()
             # ... (3) that has already made a transaction
-            customers_active_ids = [c.unique_id for c in self.model.customers if c.num_transactions > 0]
+            customers_active_ids = [c.unique_id for c in self.model.customers if c.unique_id is not None]
             # now pick the fraud target (if there are no targets get own credit card)
             try:
                 customer = self.random_state.choice([c for c in self.model.customers if (c.country in fraudster_countries) and (c.currency in fraudster_currencies) and (c.unique_id in customers_active_ids)])

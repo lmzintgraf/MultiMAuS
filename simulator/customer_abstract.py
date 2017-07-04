@@ -35,6 +35,7 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
         # fields for storing the current transaction properties
         self.curr_merchant = None
         self.curr_amount = None
+        self.local_datetime = None
 
         # variable tells us whether the customer wants to stay after current transaction
         self.stay = True
@@ -75,6 +76,7 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
             self.active = False
             self.curr_merchant = None
             self.curr_amount = None
+            self.local_datetime = None
 
     @abstractmethod
     def get_curr_merchant(self):
