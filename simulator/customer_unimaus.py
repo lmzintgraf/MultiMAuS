@@ -61,9 +61,8 @@ class UniMausCustomer(AbstractCustomer):
         Make a transaction. Called after customer decided to purchase something.
         :return: 
         """
-        # pick merchant and transaction amount
-        self.curr_merchant = self.pick_curr_merchant()
-        self.curr_amount = self.pick_curr_amount()
+        # for the unimodal agent, every transaction succeeds
+        pass
 
     def get_local_datetime(self):
         # convert global to local date (first add global timezone info, then convert to local)
@@ -85,10 +84,11 @@ class UniMausCustomer(AbstractCustomer):
     def pick_curr_amount(self):
         return self.curr_merchant.get_amount(self)
 
-    def decide_staying(self):
-        leave = (1-self.params['stay_prob'][self.fraudster]) > self.random_state.uniform(0, 1, 1)[0]
-        if leave:
-            self.stay = False
+    def stay_after_transaction(self):
+        return self.get_staying_prob() > self.random_state.uniform(0, 1, 1)[0]
+
+    def get_staying_prob(self):
+        return self.params['stay_prob'][self.fraudster]
 
     def initialise_country(self):
         country_frac = self.params['country_frac']
