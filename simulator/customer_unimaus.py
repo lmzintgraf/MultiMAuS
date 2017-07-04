@@ -1,9 +1,10 @@
 from simulator.customer_abstract import AbstractCustomer
 import numpy as np
+from pytz import timezone, country_timezones
 
 
 class UniMausCustomer(AbstractCustomer):
-    def __init__(self, unique_id, transaction_model, fraudster):
+    def __init__(self, transaction_model, fraudster):
         """
         Base class for customers/fraudsters that support uni-modal authentication.
         :param unique_id: 
@@ -11,7 +12,7 @@ class UniMausCustomer(AbstractCustomer):
         :param fraudster: 
         """
 
-        # copy model parameters to class
+        unique_id = self.model.get_next_customer_id(self.fraudster)
         super().__init__(unique_id, transaction_model, fraudster)
 
         # initialise probability of making a transaction per month/hour/...
@@ -23,29 +24,66 @@ class UniMausCustomer(AbstractCustomer):
         if trans_per_year + rand_addition > 0:
             trans_per_year += rand_addition
         self.avg_trans_per_hour = trans_per_year / 366 / 24
+        self.avg_trans_per_hour *= self.params['transaction_motivation'][self.fraudster]
 
-        # transaction probability per month
-        self.trans_prob_month = self.params['frac_month'][:, self.fraudster]
-        self.trans_prob_month = self.random_state.multivariate_normal(self.trans_prob_month, np.eye(12) * self.noise_level / 1200, 1)[0]
-        self.trans_prob_month[self.trans_prob_month < 0] = 0
+        # initialise transaction probabilities per month/monthday/weekday/hour
+        self.trans_prob_month, self.trans_prob_monthday, self.trans_prob_weekday, self.trans_prob_hour = self.initialise_transaction_probabilities()
 
-        # transaction probability per day in month
-        self.trans_prob_monthday = self.params['frac_monthday'][:, self.fraudster]
-        self.trans_prob_monthday = self.random_state.multivariate_normal(self.trans_prob_monthday, np.eye(31) * self.noise_level / 305, 1)[0]
-        self.trans_prob_monthday[self.trans_prob_monthday < 0] = 0
+    def decide_making_transaction(self):
+        """
+        Decider whether or not to make a transaction, given the current time
+        :return: 
+        """
 
-        # transaction probability per weekday (we assume this differs per individual)
-        self.trans_prob_weekday = self.params['frac_weekday'][:, self.fraudster]
-        self.trans_prob_weekday = self.random_state.multivariate_normal(self.trans_prob_weekday, np.eye(7) * self.noise_level / 70, 1)[0]
-        self.trans_prob_weekday[self.trans_prob_weekday < 0] = 0
+        # get the current local time
+        local_datetime = self.get_local_datetime()
 
-        # transaction probability per hour (we assume this differs per individual)
-        self.trans_prob_hour = self.params['frac_hour'][:, self.fraudster]
-        self.trans_prob_hour = self.random_state.multivariate_normal(self.trans_prob_hour, np.eye(24) * self.noise_level / 240, 1)[0]
-        self.trans_prob_hour[self.trans_prob_hour < 0] = 0
+        # get the average transactions per hour
+        trans_prob = self.avg_trans_per_hour
 
-        # intrinsic motivation to make transaction
-        self.transaction_motivation = self.params['transaction_motivation'][self.fraudster]
+        # now weigh by probabilities of transactions per month/week/...
+        trans_prob *= 12 * self.trans_prob_month[local_datetime.month - 1]
+        trans_prob *= 24 * self.trans_prob_hour[local_datetime.hour]
+        trans_prob *= 30.5 * self.trans_prob_monthday[local_datetime.day - 1]
+        trans_prob *= 7 * self.trans_prob_weekday[local_datetime.weekday()]
+
+        make_transaction = trans_prob > self.random_state.uniform(0, 1, 1)[0]
+
+        return make_transaction
+
+    def perform_transaction(self):
+        """
+        Make a transaction. Called after customer decided to purchase something.
+        :return: 
+        """
+        # pick merchant and transaction amount
+        self.curr_merchant = self.pick_curr_merchant()
+        self.curr_amount = self.pick_curr_amount()
+
+    def get_local_datetime(self):
+        # convert global to local date (first add global timezone info, then convert to local)
+        local_datetime = self.model.curr_global_date.replace(tzinfo=timezone('US/Pacific'))
+        local_datetime = local_datetime.astimezone(timezone(country_timezones(self.country)[0]))
+        local_datetime = local_datetime.replace(tzinfo=None)
+        return local_datetime
+
+    def pick_curr_merchant(self):
+        """
+        Can be called at each transaction; will select a merchant to buy from.
+        :return:    merchant ID
+        """
+        merchant_prob = self.params['merchant_per_currency'][self.fraudster]
+        merchant_prob = merchant_prob.loc[self.currency]
+        merchant_ID = self.random_state.choice(merchant_prob.index.values, p=merchant_prob.values.flatten())
+        return [m for m in self.model.merchants if m.unique_id == merchant_ID][0]
+
+    def pick_curr_amount(self):
+        return self.curr_merchant.get_amount(self)
+
+    def decide_staying(self):
+        leave = (1-self.params['stay_prob'][self.fraudster]) > self.random_state.uniform(0, 1, 1)[0]
+        if leave:
+            self.stay = False
 
     def initialise_country(self):
         country_frac = self.params['country_frac']
@@ -59,65 +97,34 @@ class UniMausCustomer(AbstractCustomer):
     def initialise_card_id(self):
         return self.model.get_next_card_id()
 
-    def decide_making_transaction(self):
-        return self.get_transaction_prob() > self.random_state.uniform(0, 1, 1)[0]
+    def initialise_transaction_probabilities(self):
+        # transaction probability per month
+        trans_prob_month = self.params['frac_month'][:, self.fraudster]
+        trans_prob_month = self.random_state.multivariate_normal(trans_prob_month, np.eye(12) * self.noise_level / 1200, 1)[0]
+        trans_prob_month[trans_prob_month < 0] = 0
 
-    def get_transaction_prob(self):
-        """
-        The transaction probability at a given point in time (one time step is one hour).
-        :return: 
-        """
+        # transaction probability per day in month
+        trans_prob_monthday = self.params['frac_monthday'][:, self.fraudster]
+        trans_prob_monthday = self.random_state.multivariate_normal(trans_prob_monthday, np.eye(31) * self.noise_level / 305, 1)[0]
+        trans_prob_monthday[trans_prob_monthday < 0] = 0
 
-        trans_prob = self.avg_trans_per_hour
+        # transaction probability per weekday (we assume this differs per individual)
+        trans_prob_weekday = self.params['frac_weekday'][:, self.fraudster]
+        trans_prob_weekday = self.random_state.multivariate_normal(trans_prob_weekday, np.eye(7) * self.noise_level / 70, 1)[0]
+        trans_prob_weekday[trans_prob_weekday < 0] = 0
 
-        # now weigh by probabilities of transactions per month/week/...
-        trans_prob *= 12 * self.trans_prob_month[self.curr_local_date.month - 1]
-        trans_prob *= 24 * self.trans_prob_hour[self.curr_local_date.hour]
-        trans_prob *= 30.5 * self.trans_prob_monthday[self.curr_local_date.day - 1]
-        trans_prob *= 7 * self.trans_prob_weekday[self.curr_local_date.weekday()]
+        # transaction probability per hour (we assume this differs per individual)
+        trans_prob_hour = self.params['frac_hour'][:, self.fraudster]
+        trans_prob_hour = self.random_state.multivariate_normal(trans_prob_hour, np.eye(24) * self.noise_level / 240, 1)[0]
+        trans_prob_hour[trans_prob_hour < 0] = 0
 
-        # weigh by transaction motivation
-        trans_prob *= self.transaction_motivation
-
-        # we use the 'prior' prob here because there was no fraud in jan/feb in the real data
-        return trans_prob
-
-    def pick_merchant(self):
-        """
-        Can be called at each transaction; will select a merchant to buy from.
-        :return:    merchant ID
-        """
-        merchant_prob = self.params['merchant_per_currency'][self.fraudster]
-        merchant_prob = merchant_prob.loc[self.currency]
-        merchant_ID = self.random_state.choice(merchant_prob.index.values, p=merchant_prob.values.flatten())
-        return [m for m in self.model.merchants if m.unique_id == merchant_ID][0]
-
-    def make_transaction(self):
-        """
-        Make a transaction. Called after customer decided to purchase something.
-        :return: 
-        """
-        # pick merchant and transaction amount
-        self.curr_merchant = self.pick_merchant()
-        self.curr_amount = self.curr_merchant.get_amount(self)
-        self.num_transactions += 1
-
-    def decide_staying(self):
-        leave = (1-self.params['stay_prob'][self.fraudster]) > self.random_state.uniform(0, 1, 1)[0]
-        if leave:
-            self.stay = False
+        return trans_prob_month, trans_prob_monthday, trans_prob_weekday, trans_prob_hour
 
 
-class GenuineCustomer(UniMausCustomer):
+class UniMausGenuineCustomer(UniMausCustomer):
     def __init__(self, transaction_model):
-        """
-        Initialise a genuine customer for the uni-modal authentication model
-        :param transaction_model: 
-        """
 
-        # initialise the base customer
-        customer_id = transaction_model.get_next_customer_id()
-        super().__init__(customer_id, transaction_model, fraudster=False)
+        super().__init__(transaction_model, fraudster=False)
 
         # add field for whether the credit card was corrupted by a fraudster
         self.card_corrupted = False
@@ -139,14 +146,9 @@ class GenuineCustomer(UniMausCustomer):
         return do_trans
 
 
-class FraudulentCustomer(UniMausCustomer):
+class UniMausFraudulentCustomer(UniMausCustomer):
     def __init__(self, transaction_model):
-        """
-        Initialise a fraudulent customer for the uni-model authentication model
-        :param transaction_model: 
-        """
-        fraudster_id = transaction_model.get_next_fraudster_id()
-        super().__init__(fraudster_id, transaction_model, fraudster=True)
+        super().__init__(transaction_model, fraudster=True)
 
     def initialise_card_id(self):
         """
