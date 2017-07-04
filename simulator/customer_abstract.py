@@ -1,6 +1,5 @@
 from mesa import Agent
 from abc import ABCMeta, abstractmethod
-from pytz import timezone, country_timezones
 import numpy as np
 import copy
 
@@ -36,7 +35,6 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
         # fields for storing the current transaction properties
         self.curr_merchant = None
         self.curr_amount = None
-        self.curr_local_date = None
 
         # variable tells us whether the customer wants to stay after current transaction
         self.stay = True
@@ -46,38 +44,47 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
         This is called in each simulation step (i.e., one hour).
         Each individual customer/fraudster decides whether to make a transaction or  not.
         """
-        # convert global to local date (first add global timezone info, then convert to local)
-        curr_global_date = self.model.curr_global_date.replace(tzinfo=timezone('US/Pacific'))
-        curr_local_date = curr_global_date.astimezone(timezone(country_timezones(self.country)[0]))
-        self.curr_local_date = curr_local_date.replace(tzinfo=None)
 
         # decide whether to make transaction or not
-        if self.decide_making_transaction():
+        make_transaction = self.decide_making_transaction()
+
+        if make_transaction:
+
+            # if this is the first transaction, we assign a card ID
             if self.card_id is None:
                 self.card_id = self.initialise_card_id()
+
+            # set the agent to active and pick a merchant and amount
             self.active = True
-            self.make_transaction()
+
+            # process current transaction
+            self.perform_transaction()
+
+            # at the end of each step, decide whether to stay or not
             self.decide_staying()
+
         else:
+
+            # set to inactive (important for our transaction logs)
             self.active = False
             self.curr_merchant = None
             self.curr_amount = None
+
+    @abstractmethod
+    def perform_transaction(self):
+        """
+        Perform a transaction.
+        Should update   self.curr_merchant
+                        self.curr_amount
+        :return: 
+        """
+        pass
 
     @abstractmethod
     def decide_making_transaction(self):
         """
         Decide whether to make transaction or not, given the current time step
         :return:    Boolean indicating whether to make transaction or not
-        """
-        pass
-
-    @abstractmethod
-    def make_transaction(self):
-        """
-        Make a transaction. Called when decide_making_transaction returns True
-        Should update these variables:
-            self.curr_merchant, 
-            self.curr_transaction_amount
         """
         pass
 
