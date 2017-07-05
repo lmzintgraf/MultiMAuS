@@ -59,7 +59,7 @@ class UniMausCustomer(AbstractCustomer):
         return self.model.get_next_card_id()
 
     def decide_making_transaction(self):
-        return self.get_transaction_prob() > self.random_state.uniform(0, 1, 1)[0]
+        return self.stay and self.get_transaction_prob() > self.random_state.uniform(0, 1, 1)[0]
 
     def get_transaction_prob(self):
         """
