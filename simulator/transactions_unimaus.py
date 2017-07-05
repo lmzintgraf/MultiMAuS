@@ -38,7 +38,7 @@ class UniMausTransactionModel(Model):
         # create data collector for the transaction logs
         self.log_collector = LogCollector(
             agent_reporters={"Global_Date": lambda c: c.model.curr_global_date,
-                             "Local_Date": lambda c: c.curr_local_date,
+                             "Local_Date": lambda c: c.local_datetime,
                              "CardID": lambda c: c.card_id,
                              "MerchantID": lambda c: c.curr_merchant.unique_id,
                              "Amount": lambda c: c.curr_amount,
@@ -156,14 +156,13 @@ class UniMausTransactionModel(Model):
     def initialise_fraudsters(self):
         return [self.FraudsterClass(self) for _ in range(self.parameters["num_fraudsters"])]
 
-    def get_next_customer_id(self):
-        next_id = self.next_customer_id
-        self.next_customer_id += 1
-        return next_id
-
-    def get_next_fraudster_id(self):
-        next_id = self.next_fraudster_id
-        self.next_fraudster_id += 1
+    def get_next_customer_id(self, fraudster):
+        if not fraudster:
+            next_id = self.next_customer_id
+            self.next_customer_id += 1
+        else:
+            next_id = self.next_fraudster_id
+            self.next_fraudster_id += 1
         return next_id
 
     def get_next_card_id(self):
