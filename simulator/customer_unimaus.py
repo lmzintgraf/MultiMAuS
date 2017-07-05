@@ -30,18 +30,9 @@ class UniMausCustomer(AbstractCustomer):
         self.trans_prob_month, self.trans_prob_monthday, self.trans_prob_weekday, self.trans_prob_hour = self.initialise_transaction_probabilities()
 
     def decide_making_transaction(self):
-        """
-        Decider whether or not to make a transaction, given the current time
-        :return: 
-        """
+        return self.get_transaction_prob() > self.random_state.uniform(0, 1, 1)[0]
 
-        trans_prob = self.get_curr_transaction_prob()
-
-        make_transaction = trans_prob > self.random_state.uniform(0, 1, 1)[0]
-
-        return make_transaction
-
-    def get_curr_transaction_prob(self):
+    def get_transaction_prob(self):
 
         # get the current local time
         self.local_datetime = self.get_local_datetime()
