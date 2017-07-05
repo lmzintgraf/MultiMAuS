@@ -27,7 +27,7 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
         # pick country, currency, card
         self.country = self.initialise_country()
         self.currency = self.initialise_currency()
-        self.card_id = None  # pick with first transaction
+        self.card_id = None  # picked with first transaction
 
         # variable for whether a transaction is currently being processed
         self.active = False
@@ -58,17 +58,8 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
             # set the agent to active and pick a merchant and amount
             self.active = True
 
-            # pick a current merchant
-            self.curr_merchant = self.get_curr_merchant()
-
-            # pick a current amount
-            self.curr_amount = self.get_curr_amount()
-
             # process current transaction
-            self.model.process_transaction()
-
-            # at the end of each step, decide whether to stay or not
-            self.stay = self.stay_after_transaction()
+            self.execute_transaction()
 
         else:
 
@@ -87,18 +78,19 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def execute_transaction(self):
+
+        # pick a current merchant
+        self.curr_merchant = self.get_curr_merchant()
+
+        # pick a current amount
+        self.curr_amount = self.get_curr_amount()
+
+    @abstractmethod
     def decide_making_transaction(self):
         """
         Decide whether to make transaction or not, given the current time step
         :return:    Boolean indicating whether to make transaction or not
-        """
-        pass
-
-    @abstractmethod
-    def stay_after_transaction(self):
-        """ 
-        At a given point in time, decide whether or not to make another transaction in the future.
-        :return:    Boolean indicating whether to make another transaction (stay=True) or not
         """
         pass
 
