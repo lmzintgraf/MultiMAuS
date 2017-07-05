@@ -23,7 +23,7 @@ class UniMausCustomer(AbstractCustomer):
         rand_addition = self.random_state.normal(0, self.noise_level * trans_per_year, 1)[0]
         if trans_per_year + rand_addition > 0:
             trans_per_year += rand_addition
-        self.avg_trans_per_hour = trans_per_year / 366 / 24
+        self.avg_trans_per_hour = trans_per_year / 366. / 24.
         self.avg_trans_per_hour *= self.params['transaction_motivation'][self.fraudster]
 
         # initialise transaction probabilities per month/monthday/weekday/hour
@@ -136,10 +136,13 @@ class UniMausGenuineCustomer(UniMausCustomer):
         :return:
         """
         do_trans = super().decide_making_transaction()
-        leave_after_fraud = (1-self.params['stay_after_fraud']) > self.random_state.uniform(0, 1, 1)[0]
-        if do_trans and self.card_corrupted and leave_after_fraud:
-            do_trans = False
-            self.stay = False
+
+        # if the card was corrupted, the user is more likely to leave
+        if self.card_corrupted:
+            if self.params['stay_after_fraud'] < self.random_state.uniform(0, 1, 1)[0]:
+                do_trans = False
+                self.stay = False
+
         return do_trans
 
 
@@ -160,7 +163,7 @@ class UniMausFraudulentCustomer(UniMausCustomer):
             # ... (2) from a familiar currency
             fraudster_currencies = self.params['currency_per_country'][1].index.get_level_values(1).unique()
             # ... (3) that has already made a transaction
-            customers_active_ids = [c.unique_id for c in self.model.customers if c.unique_id is not None]
+            customers_active_ids = [c.unique_id for c in self.model.customers if c.card_id is not None]
             # now pick the fraud target (if there are no targets get own credit card)
             try:
                 customer = self.random_state.choice([c for c in self.model.customers if (c.country in fraudster_countries) and (c.currency in fraudster_currencies) and (c.unique_id in customers_active_ids)])

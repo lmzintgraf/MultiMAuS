@@ -61,7 +61,7 @@ class UniMausTransactionModel(Model):
         self.schedule.agents.extend(self.fraudsters)
         self.schedule.step()
 
-        # inform the customers who's card got corrupted
+        # inform the customers whose card got corrupted
         self.inform_attacked_customers()
 
         # write new transactions to log
