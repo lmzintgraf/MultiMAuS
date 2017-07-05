@@ -36,6 +36,10 @@ class UniMausCustomer(AbstractCustomer):
             make_transaction = False
         return make_transaction
 
+    def execute_transaction(self):
+        super().execute_transaction()
+        self.stay = self.stay_after_transaction()
+
     def get_transaction_prob(self):
 
         # get the current local time
@@ -51,14 +55,6 @@ class UniMausCustomer(AbstractCustomer):
         trans_prob *= 7 * self.trans_prob_weekday[self.local_datetime.weekday()]
 
         return trans_prob
-
-    def perform_transaction(self):
-        """
-        Make a transaction. Called after customer decided to purchase something.
-        :return: 
-        """
-        # for the unimodal agent, every transaction succeeds
-        pass
 
     def get_local_datetime(self):
         # convert global to local date (first add global timezone info, then convert to local)
