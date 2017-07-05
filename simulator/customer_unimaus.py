@@ -30,7 +30,11 @@ class UniMausCustomer(AbstractCustomer):
         self.trans_prob_month, self.trans_prob_monthday, self.trans_prob_weekday, self.trans_prob_hour = self.initialise_transaction_probabilities()
 
     def decide_making_transaction(self):
-        return self.stay and self.get_transaction_prob() > self.random_state.uniform(0, 1, 1)[0]
+        if self.stay:
+            make_transaction = self.get_transaction_prob() > self.random_state.uniform(0, 1, 1)[0]
+        else:
+            make_transaction = False
+        return make_transaction
 
     def get_transaction_prob(self):
 
