@@ -69,11 +69,11 @@ def satisfaction_per_timestep(model_vars):
     :return: 
     """
     num_steps = 366*24
-    mean_satisfactions = np.zeros(num_steps)
+    sum_satisfactions = np.zeros(num_steps)
     for step in range(num_steps):
         try:
             satisfaction = model_vars.loc[step]['Satisfaction']
-            mean_satisfactions[step] = np.mean(satisfaction)
+            sum_satisfactions[step] = np.sum(satisfaction)
         except KeyError:
             pass
-    return mean_satisfactions
+    return sum_satisfactions
