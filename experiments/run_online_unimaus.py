@@ -171,10 +171,10 @@ class OnlineUnimaus:
         self.aggregate_feature_constructor.add_aggregate_features(data)
 
         # remove non-numeric columns / columns we don't need after adding features
-        data.drop(["Global_Date", "Local_Date", "CardID", "MerchantID", "Currency", "Country"], inplace=True, axis=1)
+        data.drop(["Global_Date", "Local_Date", "MerchantID", "Currency", "Country"], inplace=True, axis=1)
 
         # move Target column to the end
-        data = data[[col for col in data if col != "Target"] + ["Target"]]
+        data = data[[col for col in data if col != "Target" and col != "CardID"] + ["CardID", "Target"]]
 
         return data
 
