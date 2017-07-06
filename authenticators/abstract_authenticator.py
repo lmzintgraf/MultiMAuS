@@ -4,12 +4,12 @@ from abc import ABCMeta, abstractmethod
 class AbstractAuthenticator(metaclass=ABCMeta):
 
     @abstractmethod
-    def authorise_transaction(self, model, customer):
+    def authorise_transaction(self, customer):
         """
         Decide whether to authorise transaction.
         Note that all relevant information can be obtained from the customer.
         :param customer:    the customer making a transaction
-        :return:            boolean
+        :return:            boolean, whether or not to authorise the transaction
         """
 
 
