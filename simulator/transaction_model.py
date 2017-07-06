@@ -9,7 +9,7 @@ import numpy as np
 
 
 class TransactionModel(Model):
-    def __init__(self, model_parameters, authenticator=NeverSecondAuthenticator(), scheduler=RandomActivation()):
+    def __init__(self, model_parameters, authenticator=NeverSecondAuthenticator(), scheduler=None):
         super().__init__(seed=123)
 
         # load parameters
@@ -36,7 +36,7 @@ class TransactionModel(Model):
         self.fraudsters = self.initialise_fraudsters()
 
         # set up a scheduler
-        self.schedule = scheduler
+        self.schedule = scheduler if scheduler is not None else RandomActivation(self)
 
         # we add to the log collector whether transaction was successful
         self.log_collector = self.initialise_log_collector()
