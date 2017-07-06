@@ -24,6 +24,7 @@ class BaseCustomer(AbstractCustomer):
         self.trans_prob_month, self.trans_prob_monthday, self.trans_prob_weekday, self.trans_prob_hour = self.initialise_transaction_probabilities()
 
         # whether the current transaction was authorised
+        self.curr_trans_cancelled = False
         self.curr_trans_authorised = False
 
     def decide_making_transaction(self):
@@ -34,7 +35,11 @@ class BaseCustomer(AbstractCustomer):
         return make_transaction
 
     def post_process_transaction(self):
+        # decide whether to stay
         self.stay = self.stay_after_transaction()
+        # reset variables
+        self.curr_trans_cancelled = False
+        self.curr_trans_authorised = False
 
     def get_transaction_prob(self):
 
@@ -204,9 +209,11 @@ class GenuineCustomer(BaseCustomer):
         """
         curr_patience = 0.5 * (self.patience + self.curr_amount/self.curr_merchant.max_amount)
         if curr_patience > self.random_state.uniform(0, 1, 1)[0]:
+            self.curr_trans_cancelled = False
             auth_quality = 1
         else:
             # cancel the transaction
+            self.curr_trans_cancelled = True
             auth_quality = None
 
         self.curr_auth_step += 1
@@ -252,4 +259,5 @@ class FraudulentCustomer(BaseCustomer):
         :return:
         """
         # we assume that the fraudster cannot provide a second authentication
+        self.curr_trans_cancelled = True
         return None
