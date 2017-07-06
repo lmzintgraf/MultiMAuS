@@ -11,8 +11,7 @@ For a simple example of usage, see __main__ code at the bottom of this module.
 from data.features.aggregate_features import AggregateFeatures
 from data.features.apate_graph_features import ApateGraphFeatures
 from simulator import parameters
-from simulator.transactions_unimaus import UniMausTransactionModel
-from simulator.customer_unimaus import GenuineCustomer, FraudulentCustomer
+from simulator.transaction_model import TransactionModel
 
 
 class OnlineUnimaus:
@@ -30,7 +29,7 @@ class OnlineUnimaus:
         if params is None:
             params = parameters.get_default_parameters()
 
-        self.model = UniMausTransactionModel(params, GenuineCustomer, FraudulentCustomer)
+        self.model = TransactionModel(params)
         self.aggregate_feature_constructor = None
         self.apate_graph_feature_constructor = None
 
