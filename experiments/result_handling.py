@@ -2,6 +2,9 @@ from os.path import isdir, join, dirname, exists
 from os import mkdir
 import pickle
 import numpy as np
+import datetime
+from simulator import parameters
+import pandas as pd
 
 
 FOLDER_RESULTS = join(dirname(__file__), 'results')
@@ -25,7 +28,7 @@ def get_params_path(result_idx):
     return join(FOLDER_RESULTS, '{}_parameters.pkl'.format(result_idx))
 
 
-def save_unimaus_results(model):
+def save_results(model):
 
     # create a folder to save results in
     if not isdir(FOLDER_RESULTS):
@@ -70,11 +73,29 @@ def save_unimaus_results(model):
     update_result_idx(result_idx)
 
 
-def save_multimaus_results(model):
-
-    save_unimaus_results(model)
-
-    # TODO
-
 def get_parameters(result_idx):
     return pickle.load(open(get_params_path(result_idx), 'rb'))
+
+
+def check_parameter_consistency(params1):
+
+    params2 = parameters.get_default_parameters()
+
+    # make sure we didn't accidentally change the input parameters
+    for key in params1.keys():
+        try:
+            if isinstance(params1[key], np.ndarray):
+                assert np.sum(params1[key] - params2[key]) == 0
+            elif isinstance(params1[key], float) or isinstance(params1[key], int):
+                assert params1[key] - params2[key] == 0
+            elif isinstance(params1[key], datetime.date):
+                pass
+            elif isinstance(params1[key], pd.DataFrame):
+                assert np.sum(params1[key].values - params2[key].values) == 0
+            elif isinstance(params1[key], list):
+                for i in range(len(params1[key])):
+                    assert np.sum(params1[key][i].values - params2[key][i].values) == 0
+            else:
+                print("unknown type", key, type(params1[key]))
+        except AssertionError:
+            print("!! params changed:", key)

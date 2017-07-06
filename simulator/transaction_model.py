@@ -2,18 +2,21 @@ from simulator.merchant import Merchant
 from mesa.time import RandomActivation
 from simulator.log_collector import LogCollector
 from mesa import Model
+from authenticators.simple_authenticators import NeverSecondAuthenticator
+from simulator.customer_multimaus import GenuineCustomer, FraudulentCustomer
 from datetime import timedelta
 import numpy as np
 
 
-class UniMausTransactionModel(Model):
-    def __init__(self, model_parameters, CustomerClass, FraudsterClass):
+class TransactionModel(Model):
+    def __init__(self, model_parameters, authenticator=NeverSecondAuthenticator()):
         super().__init__()
 
         # load parameters
         self.parameters = model_parameters
-        self.CustomerClass = CustomerClass
-        self.FraudsterClass = FraudsterClass
+
+        # save authenticator for checking transactions
+        self.authenticator = authenticator
 
         # random internal state
         self.random_state = np.random.RandomState(self.parameters["seed"])
@@ -35,16 +38,31 @@ class UniMausTransactionModel(Model):
         # set up a scheduler
         self.schedule = RandomActivation(self)
 
-        # create data collector for the transaction logs
-        self.log_collector = LogCollector(
+        # we add to the log collector whether transaction was successful
+        self.log_collector = self.initialise_log_collector()
+
+    @staticmethod
+    def initialise_log_collector():
+        return LogCollector(
             agent_reporters={"Global_Date": lambda c: c.model.curr_global_date,
-                             "Local_Date": lambda c: c.local_datetime,
+                             "Local_Date": lambda c: c.curr_local_date,
                              "CardID": lambda c: c.card_id,
                              "MerchantID": lambda c: c.curr_merchant.unique_id,
                              "Amount": lambda c: c.curr_amount,
                              "Currency": lambda c: c.currency,
                              "Country": lambda c: c.country,
-                             "Target": lambda c: c.fraudster})
+                             "Target": lambda c: c.fraudster,
+                             "AuthSteps": lambda c: c.curr_auth_step,
+                             "TransactionCancelled": lambda c: c.curr_trans_cancelled,
+                             "TransactionAuthorised": lambda c: c.curr_trans_authorised},
+            model_reporters={
+                "Satisfaction": lambda m: np.sum([m.customers[i].satisfaction for i in range(len(m.customers))]) / len(m.customers)})
+
+    def inform_attacked_customers(self):
+        fraud_card_ids = [f.card_id for f in self.fraudsters if f.active and f.curr_trans_authorised]
+        for customer in self.customers:
+            if customer.card_id in fraud_card_ids:
+                customer.card_got_corrupted()
 
     def step(self):
 
@@ -77,11 +95,8 @@ class UniMausTransactionModel(Model):
         if self.curr_global_date.date() > self.parameters['end_date'].date():
             self.terminated = True
 
-    def inform_attacked_customers(self):
-        fraud_card_ids = [f.card_id for f in self.fraudsters if f.active]
-        for customer in self.customers:
-            if customer.card_id in fraud_card_ids:
-                customer.card_got_corrupted()
+    def process_transaction(self, customer):
+        return self.authenticator.authorise_transaction(customer)
 
     def customer_migration(self):
 
@@ -105,21 +120,31 @@ class UniMausTransactionModel(Model):
         num_transactions = (1 - self.parameters['noise_level']) * num_trans_month + \
                            self.parameters['noise_level'] * num_transactions
 
-        # estimate how many customers on avg left
-        num_customers_left = num_transactions * (1 - self.parameters['stay_prob'][fraudster])
+        # estimate how many customers on avg left; this many we will add
+        num_new_customers = num_transactions * (1 - self.parameters['stay_prob'][fraudster])
 
-        if num_customers_left > 1:
-            num_customers_left += self.random_state.normal(0, 1, 1)[0]
-            num_customers_left = int(np.round(num_customers_left, 0))
-            num_customers_left = np.max([0, num_customers_left])
+        # weigh by mean satisfaction
+        num_new_customers *= self.get_social_satisfaction()
+
+        if num_new_customers > 1:
+            num_new_customers += self.random_state.normal(0, 1, 1)[0]
+            num_new_customers = int(np.round(num_new_customers, 0))
+            num_new_customers = np.max([0, num_new_customers])
         else:
-            if num_customers_left > self.random_state.uniform(0, 1, 1)[0]:
-                num_customers_left = 1
+            if num_new_customers > self.random_state.uniform(0, 1, 1)[0]:
+                num_new_customers = 1
             else:
-                num_customers_left = 0
+                num_new_customers = 0
 
         # add as many customers as we think that left
-        self.customers.extend([self.CustomerClass(self) for _ in range(num_customers_left)])
+        self.customers.extend([GenuineCustomer(self) for _ in range(num_new_customers)])
+
+    def get_social_satisfaction(self):
+        """
+        Return the satisfaction of a customer's social network
+        :return: 
+        """
+        return np.mean([c.satisfaction for c in self.customers])
 
     def immigration_fraudsters(self):
 
@@ -145,16 +170,16 @@ class UniMausTransactionModel(Model):
                 num_fraudsters_left = 0
 
         # add as many fraudsters as we think that left
-        self.fraudsters.extend([self.FraudsterClass(self) for _ in range(num_fraudsters_left)])
+        self.fraudsters.extend([FraudulentCustomer(self) for _ in range(num_fraudsters_left)])
 
     def initialise_merchants(self):
         return [Merchant(i, self) for i in range(self.parameters["num_merchants"])]
 
     def initialise_customers(self):
-        return [self.CustomerClass(self) for _ in range(self.parameters['num_customers'])]
+        return [GenuineCustomer(self) for _ in range(self.parameters['num_customers'])]
 
     def initialise_fraudsters(self):
-        return [self.FraudsterClass(self) for _ in range(self.parameters["num_fraudsters"])]
+        return [FraudulentCustomer(self) for _ in range(self.parameters["num_fraudsters"])]
 
     def get_next_customer_id(self, fraudster):
         if not fraudster:
