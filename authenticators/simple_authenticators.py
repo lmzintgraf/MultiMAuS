@@ -40,13 +40,13 @@ class HeuristicAuthenticator(AbstractAuthenticator):
         return authorise
 
 
-class RandomAuthenticator(AbstractAuthenticator):
+class RandomAuthenticator(AbstractgAuthenticator):
 
     def authorise_transaction(self, customer):
 
         # ask for second authentication in 50% of the cases
         if customer.model.random_state.uniform(0, 1, 1)[0] < 0.5:
-            auth_quality = customer.get_authentication()
+            auth_quality = customer.give_authentication()
             if auth_quality is None:
                 authorise = False
             else:
