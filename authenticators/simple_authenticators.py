@@ -26,7 +26,7 @@ class AlwaysSecondAuthenticator(AbstractAuthenticator):
 
 
 class HeuristicAuthenticator(AbstractAuthenticator):
-    def __init__(self, thresh):
+    def __init__(self, thresh):g
         self.thresh = thresh
 
     def authorise_transaction(self, customer):
@@ -40,7 +40,7 @@ class HeuristicAuthenticator(AbstractAuthenticator):
         return authorise
 
 
-class RandomAuthenticator(AbstractgAuthenticator):
+class RandomAuthenticator(AbstractAuthenticator):
 
     def authorise_transaction(self, customer):
 
