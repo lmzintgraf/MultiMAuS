@@ -2,12 +2,10 @@ from authenticators.simple_authenticators import RandomAuthenticator, \
     HeuristicAuthenticator, OracleAuthenticator, NeverSecondAuthenticator, \
     AlwaysSecondAuthenticator
 from simulator import parameters
-from simulator.transactions_multimaus import MultiMausTransactionModel
+from simulator.transaction_model import TransactionModel
 from experiments import rewards
 import numpy as np
 import matplotlib.pyplot as plt
-from simulator.customer_multimaus import MultiMausGenuineCustomer, UniMausFraudulentCustomer
-from experiments import result_handling
 
 
 def run_single():
@@ -27,7 +25,7 @@ def run_single():
         authenticator = get_authenticator(a)
 
         # initialise transaction model
-        model = MultiMausTransactionModel(params, MultiMausGenuineCustomer, UniMausFraudulentCustomer, authenticator)
+        model = TransactionModel(params, authenticator)
 
         # run the simulation until termination
         while not model.terminated:

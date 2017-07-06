@@ -3,7 +3,7 @@ from mesa.time import RandomActivation
 from simulator.log_collector import LogCollector
 from mesa import Model
 from authenticators.simple_authenticators import NeverSecondAuthenticator
-from simulator.customer_multimaus import GenuineCustomer, FraudulentCustomer
+from simulator.customers import GenuineCustomer, FraudulentCustomer
 from datetime import timedelta
 import numpy as np
 
@@ -45,7 +45,7 @@ class TransactionModel(Model):
     def initialise_log_collector():
         return LogCollector(
             agent_reporters={"Global_Date": lambda c: c.model.curr_global_date,
-                             "Local_Date": lambda c: c.curr_local_date,
+                             "Local_Date": lambda c: c.local_datetime,
                              "CardID": lambda c: c.card_id,
                              "MerchantID": lambda c: c.curr_merchant.unique_id,
                              "Amount": lambda c: c.curr_amount,
@@ -176,6 +176,7 @@ class TransactionModel(Model):
         return [Merchant(i, self) for i in range(self.parameters["num_merchants"])]
 
     def initialise_customers(self):
+        # return [self.CustomerClass(self, satisfaction=np.copy(self.parameters['init_satisfaction'])) for _ in range(self.parameters['num_customers'])]
         return [GenuineCustomer(self) for _ in range(self.parameters['num_customers'])]
 
     def initialise_fraudsters(self):
