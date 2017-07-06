@@ -35,6 +35,18 @@ class OnlineUnimaus:
         self.apate_graph_feature_constructor = None
 
     def block_cards(self, card_ids):
+        """
+        Blocks the given list of Card IDs (removing all genuine and fraudulent customers with matching
+        Card IDs from the simulation).
+
+        NOTE: This function is only intended to be called using Card IDs that are 100% known to have
+        been involved in fraudulent transactions. If the list contains more than a single Card ID,
+        and the Card ID has not been used in any fraudulent transactions, the function may not be able
+        to find the matching customer (due to an optimization in the implementation)
+
+        :param card_ids:
+            List of one or more Card IDs to block
+        """
         n = len(card_ids)
 
         if n == 0:
