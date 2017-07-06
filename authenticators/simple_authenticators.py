@@ -19,7 +19,7 @@ class NeverSecondAuthenticator(AbstractAuthenticator):
 class AlwaysSecondAuthenticator(AbstractAuthenticator):
 
     def authorise_transaction(self, customer):
-        if customer.get_authentication() is not None:
+        if customer.give_authentication() is not None:
             return True
         else:
             return False
@@ -33,7 +33,7 @@ class HeuristicAuthenticator(AbstractAuthenticator):
 
         authorise = True
         if customer.curr_amount > self.thresh:
-            auth_quality = customer.get_authentication()
+            auth_quality = customer.give_authentication()
             if auth_quality is None:
                 authorise = False
 

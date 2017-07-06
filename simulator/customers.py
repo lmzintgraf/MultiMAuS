@@ -138,11 +138,11 @@ class GenuineCustomer(BaseCustomer):
 
         # field whether current transaction was authorised or not
         self.curr_auth_step = 0
-        self.curr_trans_authorised = False
 
-        # initialise the customer's patience
+        # initialise the customer's patience (optimistically)
         self.patience = self.random_state.beta(10, 2, 1)[0]
 
+        # instantiate the customer's satisfaction
         self.satisfaction = satisfaction
 
     def stay_after_transaction(self):
@@ -189,16 +189,16 @@ class GenuineCustomer(BaseCustomer):
         Adjust the satisfaction of the user after a transaction was made.
         :return: 
         """
-        # if no authentication was done, the satisfaction goes up by 1%
+        # if no authentication was done, the satisfaction goes up by 0.01
         if self.curr_auth_step == 0:
-            self.satisfaction *= 1.001
+            self.satisfaction += 0.01
         else:
             # if a second authentication was done, the satisfaction goes down by 1%
             if self.curr_trans_authorised:
-                self.satisfaction *= 0.995
+                self.satisfaction -= 0.01
             # if second authentication as asked but the customer cancelled the transaction, the satisfaction goes down by 10%
             else:
-                self.satisfaction *= 0.9
+                self.satisfaction -= 0.1
 
     def give_authentication(self):
         """

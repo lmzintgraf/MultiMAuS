@@ -19,8 +19,7 @@ def run_single():
     params['stay_prob'] = new_stay_prob
 
     plt.figure()
-    # for a in ['random', 'oracle', 'never_second', 'heuristic', 'always_second']:
-    for a in ['random']:
+    for a in ['random', 'oracle', 'never_second', 'heuristic', 'always_second']:
 
         # the authenticator
         authenticator = get_authenticator(a)
