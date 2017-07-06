@@ -179,11 +179,10 @@ class GenuineCustomer(BaseCustomer):
 
         self.update_satisfaction()
 
-        # decide whether to s†ay
-        self.stay = self.stay_after_transaction()
-
         # reset authentication step count
         self.curr_auth_step = 0
+
+        super().post_process_transaction()
 
     def update_satisfaction(self):
         """
