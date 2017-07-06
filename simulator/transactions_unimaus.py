@@ -104,7 +104,7 @@ class UniMausTransactionModel(Model):
             num_customers_left = int(np.round(num_customers_left, 0))
             num_customers_left = np.max([0, num_customers_left])
         else:
-            if num_customers_left > np.random.uniform(0, 1, 1)[0]:
+            if num_customers_left > self.random_state.uniform(0, 1, 1)[0]:
                 num_customers_left = 1
             else:
                 num_customers_left = 0
@@ -130,7 +130,7 @@ class UniMausTransactionModel(Model):
             num_fraudsters_left = int(np.round(num_fraudsters_left, 0))
             num_fraudsters_left = np.max([0, num_fraudsters_left])
         else:
-            if num_fraudsters_left > np.random.uniform(0, 1, 1)[0]:
+            if num_fraudsters_left > self.random_state.uniform(0, 1, 1)[0]:
                 num_fraudsters_left = 1
             else:
                 num_fraudsters_left = 0
