@@ -1,7 +1,7 @@
 from simulator.merchant import Merchant
-from mesa.time import RandomActivation
+from mesa.mesa.time import RandomActivation
 from simulator.log_collector import LogCollector
-from mesa import Model
+from mesa.mesa import Model
 from authenticators.simple_authenticators import NeverSecondAuthenticator
 from simulator.customers import GenuineCustomer, FraudulentCustomer
 from datetime import timedelta
@@ -9,8 +9,8 @@ import numpy as np
 
 
 class TransactionModel(Model):
-    def __init__(self, model_parameters, authenticator=NeverSecondAuthenticator()):
-        super().__init__()
+    def __init__(self, model_parameters, authenticator=NeverSecondAuthenticator(), scheduler=RandomActivation()):
+        super().__init__(seed=123)
 
         # load parameters
         self.parameters = model_parameters
@@ -36,7 +36,7 @@ class TransactionModel(Model):
         self.fraudsters = self.initialise_fraudsters()
 
         # set up a scheduler
-        self.schedule = RandomActivation(self)
+        self.schedule = scheduler
 
         # we add to the log collector whether transaction was successful
         self.log_collector = self.initialise_log_collector()
