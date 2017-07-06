@@ -36,6 +36,9 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
         self.curr_merchant = None
         self.curr_amount = None
         self.local_datetime = None
+        self.curr_auth_step = 0
+        self.curr_trans_cancelled = False
+        self.curr_trans_authorised = False
 
         # variable tells us whether the customer wants to stay after current transaction
         self.stay = True
@@ -55,11 +58,20 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
             if self.card_id is None:
                 self.card_id = self.initialise_card_id()
 
-            # set the agent to active and pick a merchant and amount
+            # set the agent to active
             self.active = True
 
+            # pick a current merchant
+            self.curr_merchant = self.get_curr_merchant()
+
+            # pick a current amount
+            self.curr_amount = self.get_curr_amount()
+
             # process current transaction
-            self.execute_transaction()
+            self.curr_trans_authorised = self.model.process_transaction(self)
+
+            # if necessary post-process the transaction
+            self.post_process_transaction()
 
         else:
 
@@ -69,6 +81,27 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
             self.curr_amount = None
             self.local_datetime = None
 
+    def request_transaction(self):
+        self.model.authorise_transaction(self)
+
+    def post_process_transaction(self):
+        """
+        Optional updates after transaction;
+        e.g. decide whether to stay or update satisfaction
+        :return: 
+        """
+        pass
+
+    @abstractmethod
+    def give_authentication(self):
+        """
+        Authenticate self if requested by the payment processing platform.
+        Return can e.g. be quality of authentication or boolean.
+        If no authentication is given, this usually returns None.
+        :return:
+        """
+        pass
+
     @abstractmethod
     def get_curr_merchant(self):
         pass
@@ -76,15 +109,6 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
     @abstractmethod
     def get_curr_amount(self):
         pass
-
-    @abstractmethod
-    def execute_transaction(self):
-
-        # pick a current merchant
-        self.curr_merchant = self.get_curr_merchant()
-
-        # pick a current amount
-        self.curr_amount = self.get_curr_amount()
 
     @abstractmethod
     def decide_making_transaction(self):
