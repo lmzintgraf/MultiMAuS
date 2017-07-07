@@ -10,13 +10,14 @@ For a simple example of usage, see __main__ code at the bottom of this module.
 
 from data.features.aggregate_features import AggregateFeatures
 from data.features.apate_graph_features import ApateGraphFeatures
+from mesa.time import BaseScheduler
 from simulator import parameters
 from simulator.transaction_model import TransactionModel
 
 
 class OnlineUnimaus:
 
-    def __init__(self, params=None):
+    def __init__(self, params=None, random_schedule=False):
         """
         Creates an object that can be used to run the simulator online / interactively. This means
         that we can have it generate a bit of data, do something with the data, generate a bit more
@@ -25,11 +26,20 @@ class OnlineUnimaus:
 
         :param params:
             Parameters passed on to the UniMausTransactionModel. Will use the default parameters if None
+        :param random_schedule:
+            False by default. If set to True, we use a RandomActivation schedule to shuffle the order in
+            which agents are updated every step.
         """
         if params is None:
             params = parameters.get_default_parameters()
 
-        self.model = TransactionModel(params)
+        if random_schedule:
+            self.model = TransactionModel(params)
+        else:
+            self.model = TransactionModel(params, scheduler=BaseScheduler(None))
+
+        self.params = params
+
         self.aggregate_feature_constructor = None
         self.apate_graph_feature_constructor = None
 
@@ -96,8 +106,8 @@ class OnlineUnimaus:
         Clears all transactions generated so far from memory
         """
         agent_vars = self.model.log_collector.agent_vars
-        for reporter_name, records in agent_vars.items():
-            records.clear()
+        for reporter_name in agent_vars:
+            agent_vars[reporter_name] = []
 
     def get_log(self, clear_after=True):
         """
@@ -114,12 +124,25 @@ class OnlineUnimaus:
         if log is None:
             return None
 
-        log.index = log.index.droplevel(1)
+        log.reset_index(drop=True, inplace=True)
 
         if clear_after:
             self.clear_log()
 
         return log
+
+    def get_params_string(self):
+        """
+        Returns a single string describing all of our param values.
+
+        :return:
+        """
+        output = ""
+
+        for key in self.params:
+            output += str(key) + ":" + str(self.params[key]) + "-"
+
+        return output
 
     def step_simulator(self, num_steps=1):
         """
@@ -170,7 +193,9 @@ class OnlineUnimaus:
         self.aggregate_feature_constructor.add_aggregate_features(data)
 
         # remove non-numeric columns / columns we don't need after adding features
-        data.drop(["Global_Date", "Local_Date", "MerchantID", "Currency", "Country"], inplace=True, axis=1)
+        data.drop(["Global_Date", "Local_Date", "MerchantID", "Currency", "Country",
+                   "AuthSteps", "TransactionCancelled", "TransactionAuthorised"],
+                  inplace=True, axis=1)
 
         # move Target column to the end
         data = data[[col for col in data if col != "Target" and col != "CardID"] + ["CardID", "Target"]]
