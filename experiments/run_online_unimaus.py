@@ -43,7 +43,7 @@ class OnlineUnimaus:
         self.aggregate_feature_constructor = None
         self.apate_graph_feature_constructor = None
 
-    def block_cards(self, card_ids):
+    def block_cards(self, card_ids, replace_fraudsters=True):
         """
         Blocks the given list of Card IDs (removing all genuine and fraudulent customers with matching
         Card IDs from the simulation).
@@ -55,12 +55,16 @@ class OnlineUnimaus:
 
         :param card_ids:
             List of one or more Card IDs to block
+        :param replace_fraudsters:
+            If True, also replaces the banned fraudsters by an equal number of new fraudsters. True by default
         """
         n = len(card_ids)
 
         if n == 0:
             # nothing to do
             return
+
+        num_banned_fraudsters = 0
 
         if n == 1:
             # most efficient implementation in this case is simply to loop once through all customers (fraudulent
@@ -77,6 +81,7 @@ class OnlineUnimaus:
             for fraudster in self.model.fraudsters:
                 if fraudster.card_id == blocked_card_id:
                     fraudster.stay = False
+                    num_banned_fraudsters += 1
 
                     # should not be any more fraudsters with same card ID, so can break
                     break
@@ -97,9 +102,13 @@ class OnlineUnimaus:
                 for fraudster in self.model.fraudsters:
                     if fraudster.card_id == blocked_card_id:
                         fraudster.stay = False
+                        num_banned_fraudsters += 1
 
                         # should not be any more fraudsters with same card ID, so can break
                         break
+
+        if replace_fraudsters:
+            self.model.add_fraudsters(num_banned_fraudsters)
 
     def clear_log(self):
         """
