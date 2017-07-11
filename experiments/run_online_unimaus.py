@@ -8,6 +8,7 @@ For a simple example of usage, see __main__ code at the bottom of this module.
 @author Dennis Soemers (only the online API: Luisa Zintgraf developed the original simulator)
 """
 
+from datetime import datetime
 from data.features.aggregate_features import AggregateFeatures
 from data.features.apate_graph_features import ApateGraphFeatures
 from mesa.time import BaseScheduler
@@ -17,13 +18,17 @@ from simulator.transaction_model import TransactionModel
 
 class OnlineUnimaus:
 
-    def __init__(self, params=None, random_schedule=False):
+    def __init__(self, end_date=datetime(2999, 12, 31), params=None, random_schedule=False):
         """
         Creates an object that can be used to run the simulator online / interactively. This means
         that we can have it generate a bit of data, do something with the data, generate a bit more
         data, do something again, etc. (as opposed to, generating one large batch of data, storing it
         in a file, and then using it in a different program).
 
+        :param end_date:
+            Final possible date in the simulation. By default set to 31st December 2999, which allows for
+            a sufficiently long simulation run. If set to anything other than None, will override the
+            end_date as specified in params
         :param params:
             Parameters passed on to the UniMausTransactionModel. Will use the default parameters if None
         :param random_schedule:
@@ -32,6 +37,9 @@ class OnlineUnimaus:
         """
         if params is None:
             params = parameters.get_default_parameters()
+
+        if end_date is not None:
+            params['end_date'] = end_date
 
         if random_schedule:
             self.model = TransactionModel(params)
@@ -59,6 +67,16 @@ class OnlineUnimaus:
             If True, also replaces the banned fraudsters by an equal number of new fraudsters. True by default
         """
         n = len(card_ids)
+
+        '''
+        print("block_cards called!")
+
+        if n == 0:
+            print("Not blocking anything")
+
+        for card_id in card_ids:
+            print("Blocking ", card_id)
+        '''
 
         if n == 0:
             # nothing to do
@@ -169,7 +187,8 @@ class OnlineUnimaus:
                 return False
 
             self.model.step()
-            return True
+
+        return True
 
     def prepare_feature_constructors(self, data):
         """
@@ -220,6 +239,7 @@ class OnlineUnimaus:
             (unlabeled) new data (should NOT have been passed into prepare_feature_constructors() previously)
         """
         self.aggregate_feature_constructor.update_unlabeled(data)
+
 
 class DataLogWrapper:
 
