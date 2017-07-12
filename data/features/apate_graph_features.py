@@ -68,7 +68,7 @@ class ApateGraphFeatures:
             in a Random Walk with Restart Procedure. Both of the papers this implementation is based only
             mention using a value of 0.85
         """
-        print(str(datetime.now()), ": Init APATE Graph Features...")
+        #print(str(datetime.now()), ": Init APATE Graph Features...")
 
         self.CONVERGENCE_THRESHOLD = convergence_threshold
         self.ALPHA = alpha
@@ -168,7 +168,7 @@ class ApateGraphFeatures:
             # increment transaction counter
             t += 1
 
-        print(str(datetime.now()), ": Finished computing entries...")
+        #print(str(datetime.now()), ": Finished computing entries...")
 
         # we'll use a sparse matrix. May not yet be necessary for original dataset, but will be necessary
         # for larger datasets from simulator
@@ -180,14 +180,14 @@ class ApateGraphFeatures:
         self.A_tri_medium = coo_matrix((entries_A_medium, (rows_A, cols_A)), shape=A_tri_shape).tocsr()
         self.A_tri_long = coo_matrix((entries_A_long, (rows_A, cols_A)), shape=A_tri_shape).tocsr()
 
-        print(str(datetime.now()), ": Finished creating matrices...")
+        #print(str(datetime.now()), ": Finished creating matrices...")
 
         self.r0 = coo_matrix((entries_r0, (rows_r0, cols_r0)), shape=(dim, 1)).tocsc()
         self.r0_short = coo_matrix((entries_r0_short, (rows_r0, cols_r0)), shape=(dim, 1)).tocsc()
         self.r0_medium = coo_matrix((entries_r0_medium, (rows_r0, cols_r0)), shape=(dim, 1)).tocsc()
         self.r0_long = coo_matrix((entries_r0_long, (rows_r0, cols_r0)), shape=(dim, 1)).tocsc()
 
-        print(str(datetime.now()), ": Finished creating vectors...")
+        #print(str(datetime.now()), ": Finished creating vectors...")
 
         # normalize rows to sum up to 1.0 for all the A_tri matrices (first paper says normalize columns,
         # but we structured the matrix as in second paper, so we need to normalize rows)
@@ -196,7 +196,7 @@ class ApateGraphFeatures:
         self.A_tri_medium = self.normalize_rows(self.A_tri_medium)
         self.A_tri_long = self.normalize_rows(self.A_tri_long)
 
-        print(str(datetime.now()), ": Finished normalizing matrices...")
+        #print(str(datetime.now()), ": Finished normalizing matrices...")
 
         # normalize r0 vectors to sum up to 1.0 (this is described in the first article, but not the second)
         self.r0 = self.r0 / self.r0.sum()
@@ -204,24 +204,24 @@ class ApateGraphFeatures:
         self.r0_medium = self.r0_medium / self.r0_medium.sum()
         self.r0_long = self.r0_long / self.r0_long.sum()
 
-        print(str(datetime.now()), ": Finished normalizing vectors...")
+        #print(str(datetime.now()), ": Finished normalizing vectors...")
 
         # run convergence procedure for the four different levels of decay
         self.rkc = self.converge(self.r0, self.A_tri,
                                  alpha=self.ALPHA, convergence_threshold=self.CONVERGENCE_THRESHOLD)
-        print(str(datetime.now()), ": Finished convergence without decay...")
+        #print(str(datetime.now()), ": Finished convergence without decay...")
 
         self.rkc_short = self.converge(self.r0_short, self.A_tri_short,
                                        alpha=self.ALPHA, convergence_threshold=self.CONVERGENCE_THRESHOLD)
-        print(str(datetime.now()), ": Finished convergence with short-term decay...")
+        #print(str(datetime.now()), ": Finished convergence with short-term decay...")
 
         self.rkc_medium = self.converge(self.r0_medium, self.A_tri_medium,
                                         alpha=self.ALPHA, convergence_threshold=self.CONVERGENCE_THRESHOLD)
-        print(str(datetime.now()), ": Finished convergence with medium-term decay...")
+        #print(str(datetime.now()), ": Finished convergence with medium-term decay...")
 
         self.rkc_long = self.converge(self.r0_long, self.A_tri_long,
                                       alpha=self.ALPHA, convergence_threshold=self.CONVERGENCE_THRESHOLD)
-        print(str(datetime.now()), ": Finished convergence with long-term decay...")
+        #print(str(datetime.now()), ": Finished convergence with long-term decay...")
 
         self.A_tri.eliminate_zeros()
         self.A_tri_short.eliminate_zeros()
@@ -251,14 +251,14 @@ class ApateGraphFeatures:
         test_data["CHScore_ST"] = test_data.apply(lambda row: self.get_ch_score(row, "short"), axis=1)
         test_data["CHScore_MT"] = test_data.apply(lambda row: self.get_ch_score(row, "medium"), axis=1)
         test_data["CHScore_LT"] = test_data.apply(lambda row: self.get_ch_score(row, "long"), axis=1)
-        print(str(datetime.now()), ": Finished computing Card Holder features...")
+        #print(str(datetime.now()), ": Finished computing Card Holder features...")
 
         # add four scores for merchant (four levels of decay)
         test_data["MerScore"] = test_data.apply(lambda row: self.get_mer_score(row, ""), axis=1)
         test_data["MerScore_ST"] = test_data.apply(lambda row: self.get_mer_score(row, "short"), axis=1)
         test_data["MerScore_MT"] = test_data.apply(lambda row: self.get_mer_score(row, "medium"), axis=1)
         test_data["MerScore_LT"] = test_data.apply(lambda row: self.get_mer_score(row, "long"), axis=1)
-        print(str(datetime.now()), ": Finished computing Merchant features...")
+        #print(str(datetime.now()), ": Finished computing Merchant features...")
 
         # make sure all our A^{tri} matrices have sorted indices (important before computing transaction scores)
         if not self.A_tri.has_sorted_indices:
@@ -275,7 +275,7 @@ class ApateGraphFeatures:
         test_data["TrxScore_ST"] = test_data.apply(lambda row: self.compute_trx_score(row, "short"), axis=1)
         test_data["TrxScore_MT"] = test_data.apply(lambda row: self.compute_trx_score(row, "medium"), axis=1)
         test_data["TrxScore_LT"] = test_data.apply(lambda row: self.compute_trx_score(row, "long"), axis=1)
-        print(str(datetime.now()), ": Finished computing Transaction features...")
+        #print(str(datetime.now()), ": Finished computing Transaction features...")
 
     def compute_trx_score(self, row, interval):
         """

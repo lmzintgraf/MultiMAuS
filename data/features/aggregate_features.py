@@ -32,19 +32,19 @@ class AggregateFeatures:
 
         :param training_data:
         """
-        print(str(datetime.now()), ": Init Aggregate Features...")
+        #print(str(datetime.now()), ": Init Aggregate Features...")
 
         self.country_all_dict, self.country_fraud_dict = self.compute_fraud_ratio_dicts(training_data, "Country")
-        print(str(datetime.now()), ": Finished computing country dicts...")
+        #print(str(datetime.now()), ": Finished computing country dicts...")
         self.first_order_times_dict = {}
         self.compute_first_order_times_dict(training_data)
-        print(str(datetime.now()), ": Finished computing First Order Times dict...")
+        #print(str(datetime.now()), ": Finished computing First Order Times dict...")
 
         # compute and store a mapping from card IDs to lists of transactions
         # this is a bit expensive memory-wise, but will very significantly speed up feature construction
         self.transactions_by_card_ids = {}
         self.add_transactions_by_card_ids(training_data)
-        print(str(datetime.now()), ": Finished computing Transactions by Card IDs dict from training data...")
+        #print(str(datetime.now()), ": Finished computing Transactions by Card IDs dict from training data...")
 
     def update_unlabeled(self, new_data):
         """
@@ -96,7 +96,7 @@ class AggregateFeatures:
             lambda row: self.get_country_fraud_ratio(row=row), axis=1)
         data["CountrySufficientSampleSize"] = data.apply(
             lambda row: self.is_country_sample_size_sufficient(row=row), axis=1)
-        print(str(datetime.now()), ": Finished adding country-related features...")
+        #print(str(datetime.now()), ": Finished adding country-related features...")
 
         '''
         The following feature appears in Table 1 in [1], but has no explanation otherwise in the paper. Intuitively,
@@ -105,13 +105,13 @@ class AggregateFeatures:
         '''
         data["TimeSinceFirstOrder"] = data.apply(
             lambda row: self.get_time_since_first_order(row=row), axis=1)
-        print(str(datetime.now()), ": Finished adding Time Since First Order feature...")
+        #print(str(datetime.now()), ": Finished adding Time Since First Order feature...")
 
         data = self.add_historical_features(data)
-        print(str(datetime.now()), ": Finished adding historical features")
+        #print(str(datetime.now()), ": Finished adding historical features")
 
         data = self.add_time_of_day_features(data)
-        print(str(datetime.now()), ": Finished adding time-of-day features")
+        #print(str(datetime.now()), ": Finished adding time-of-day features")
 
         return data
 
@@ -173,7 +173,7 @@ class AggregateFeatures:
                     else:
                         data[new_col_name] = 0.0
 
-        print(str(datetime.now()), ": Added all-zero columns for historical features")
+        #print(str(datetime.now()), ": Added all-zero columns for historical features")
 
         # now we have all the columns ready, and we can loop through rows, handling all features per row at once
         for row in data.itertuples():
@@ -259,7 +259,7 @@ class AggregateFeatures:
             # in the absence of data
             data[new_col_name] = 1.0
 
-        print(str(datetime.now()), ": Added all-one columns for time-of-day features")
+        #print(str(datetime.now()), ": Added all-one columns for time-of-day features")
 
         # now we have all the columns ready, and we can loop through rows, handling all features per row at once
         for row in data.itertuples():

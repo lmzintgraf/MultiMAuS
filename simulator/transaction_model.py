@@ -170,7 +170,16 @@ class TransactionModel(Model):
                 num_fraudsters_left = 0
 
         # add as many fraudsters as we think that left
-        self.fraudsters.extend([FraudulentCustomer(self) for _ in range(num_fraudsters_left)])
+        self.add_fraudsters(num_fraudsters_left)
+
+    def add_fraudsters(self, num_fraudsters):
+        """
+        Adds n new fraudsters to the simulation
+
+        :param num_fraudsters:
+            The number n of new fraudsters to add
+        """
+        self.fraudsters.extend([FraudulentCustomer(self) for _ in range(num_fraudsters)])
 
     def initialise_merchants(self):
         return [Merchant(i, self) for i in range(self.parameters["num_merchants"])]
