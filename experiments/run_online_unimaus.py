@@ -204,6 +204,22 @@ class OnlineUnimaus:
         self.aggregate_feature_constructor = AggregateFeatures(data)
         self.apate_graph_feature_constructor = ApateGraphFeatures(data)
 
+    def print_debug_info(self, data):
+        """
+        Useful to call from Java, so that we can observe a dataset we want to debug through Python and easily
+        print info about it
+
+        :param data:
+            Dataset we want to know more about
+        """
+        print("----- print_debug_info called! -----")
+
+        if data is None:
+            print("data is None")
+        else:
+            print("data is not None")
+            print(data.head())
+
     def process_data(self, data):
         """
         Processes the given data, so that it will be ready for use in Machine Learning models. New features
