@@ -24,16 +24,13 @@ def get_default_parameters():
         # number of customers and fraudsters at beginning of simulation
         # (note that this doesn't really influence the total amount of transactions;
         #  for that change the probability of making transactions)
-        # 'num_customers': 3333,
-        # 'num_fraudsters': 44,
-        'num_customers': 100,
-        'num_fraudsters': 10,
+        'num_customers': 3333,
+        'num_fraudsters': 44,
 
         # the intrinsic transaction motivation per customer (is proportional to number of customers/fraudsters)
         # we keep this separate because then we can play around with the number of customers/fraudsters,
         # but individual behaviour doesn't change
-        # 'transaction_motivation': np.array([1./3333, 1./44]),
-        'transaction_motivation': np.array([1./100, 1./10]),
+        'transaction_motivation': np.array([1./3333, 1./44]),
 
         # the initial satisfaction of customers
         'init_satisfaction': 1.,
