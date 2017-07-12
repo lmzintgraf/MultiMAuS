@@ -2,6 +2,8 @@ from authenticators.abstract_authenticator import AbstractAuthenticator
 
 
 class OracleAuthenticator(AbstractAuthenticator):
+    def __init__(self):
+        super().__init__(name='oracle')
 
     def authorise_transaction(self, customer):
         if customer.fraudster:
@@ -11,12 +13,16 @@ class OracleAuthenticator(AbstractAuthenticator):
 
 
 class NeverSecondAuthenticator(AbstractAuthenticator):
+    def __init__(self):
+        super().__init__(name='never_second')
 
     def authorise_transaction(self, customer):
         return True
 
 
 class AlwaysSecondAuthenticator(AbstractAuthenticator):
+    def __init__(self):
+        super().__init__(name='always_second')
 
     def authorise_transaction(self, customer):
         if customer.give_authentication() is not None:
@@ -26,7 +32,8 @@ class AlwaysSecondAuthenticator(AbstractAuthenticator):
 
 
 class HeuristicAuthenticator(AbstractAuthenticator):
-    def __init__(self, thresh):
+    def __init__(self, thresh=50):
+        super().__init__(name='heuristic')
         self.thresh = thresh
 
     def authorise_transaction(self, customer):
@@ -41,6 +48,8 @@ class HeuristicAuthenticator(AbstractAuthenticator):
 
 
 class RandomAuthenticator(AbstractAuthenticator):
+    def __init__(self):
+        super().__init__(name='random')
 
     def authorise_transaction(self, customer):
 

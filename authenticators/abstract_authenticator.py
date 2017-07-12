@@ -2,6 +2,13 @@ from abc import ABCMeta, abstractmethod
 
 
 class AbstractAuthenticator(metaclass=ABCMeta):
+    def __init__(self, name):
+        """
+        Every authenticator has to have a name
+        :param name: 
+        """
+        super().__init__()
+        self.name = name
 
     @abstractmethod
     def authorise_transaction(self, customer):
