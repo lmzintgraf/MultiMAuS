@@ -6,20 +6,23 @@ from simulator.transaction_model import TransactionModel
 from experiments import rewards
 import numpy as np
 import matplotlib.pyplot as plt
+from experiments import result_handling
 
 
 def run_single():
 
     # get the parameters for the simulation
     params = parameters.get_default_parameters()
+    params['init_satisfaction'] = 0.9
+    params['transaction_motivation'] /= 0.9
 
     # increase the probability of making another transaction
     new_stay_prob = [0.8, 0.5]
     print('changing stay prob from', params['stay_prob'], 'to', new_stay_prob)
     params['stay_prob'] = new_stay_prob
 
-    plt.figure()
-    for a in ['random', 'oracle', 'never_second', 'heuristic', 'always_second']:
+    plt.figure(figsize=(10, 5))
+    for a in ['random', 'oracle', 'never_second', 'heuristic50', 'heuristic100', 'always_second']:
 
         # the authenticator
         authenticator = get_authenticator(a)
@@ -37,22 +40,20 @@ def run_single():
 
         model_vars = model.log_collector.get_model_vars_dataframe()
 
-        # TODO: save the results
-        # result_handling.save_multimaus_results(model)
+        # save the results
+        result_handling.save_results(model)
 
         monetary_rewards = rewards.monetary_reward_per_timestep(agent_vars)
         satisfaction_rewards = rewards.satisfaction_reward_per_timestep(agent_vars)
         true_satisfactions = rewards.satisfaction_per_timestep(model_vars)
 
-        plt.subplot(3, 1, 1)
+        plt.subplot(1, 2, 1)
         plt.ylabel('cumulative reward')
         plt.plot(range(len(monetary_rewards)), np.cumsum(monetary_rewards), label=a)
         plt.legend()
-        plt.subplot(3, 1, 2)
-        plt.ylabel('satisfaction - estimated reward')
-        plt.plot(range(len(satisfaction_rewards)), np.cumsum(satisfaction_rewards), label=a)
-        plt.subplot(3, 1, 3)
-        plt.ylabel('satisfaction - real')
+
+        plt.subplot(1, 2, 2)
+        plt.ylabel('cumulative satisfaction')
         plt.plot(range(len(true_satisfactions)), np.cumsum(true_satisfactions), label=a)
 
     plt.tight_layout()
@@ -62,8 +63,10 @@ def run_single():
 def get_authenticator(auth_type):
     if auth_type == 'random':
         return RandomAuthenticator()
-    elif auth_type == 'heuristic':
-        return HeuristicAuthenticator(500)
+    elif auth_type == 'heuristic50':
+        return HeuristicAuthenticator(50)
+    elif auth_type == 'heuristic100':
+        return HeuristicAuthenticator(100)
     elif auth_type == 'oracle':
         return OracleAuthenticator()
     elif auth_type == 'never_second':

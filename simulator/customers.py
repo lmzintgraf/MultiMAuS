@@ -191,14 +191,16 @@ class GenuineCustomer(BaseCustomer):
         """
         # if no authentication was done, the satisfaction goes up by 0.01
         if self.curr_auth_step == 0:
-            self.satisfaction += 0.01
+            self.satisfaction *= 1.01
         else:
             # if a second authentication was done, the satisfaction goes down by 1%
             if self.curr_trans_authorised:
-                self.satisfaction -= 0.01
+                self.satisfaction *= 0.99
             # if second authentication as asked but the customer cancelled the transaction, the satisfaction goes down by 10%
             else:
-                self.satisfaction -= 0.1
+                self.satisfaction *= 0.95
+        self.satisfaction = np.min([1, self.satisfaction])
+        self.satisfaction = np.max([0, self.satisfaction])
 
     def give_authentication(self):
         """

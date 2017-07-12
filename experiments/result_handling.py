@@ -28,6 +28,14 @@ def get_params_path(result_idx):
     return join(FOLDER_RESULTS, '{}_parameters.pkl'.format(result_idx))
 
 
+def get_transaction_log_path(result_idx):
+    return join(FOLDER_RESULTS, '{}_transaction_log.csv'.format(result_idx))
+
+
+def get_satisfaction_log_path(result_idx):
+    return join(FOLDER_RESULTS, '{}_satisfaction_log.csv'.format(result_idx))
+
+
 def save_results(model):
 
     # create a folder to save results in
@@ -41,15 +49,23 @@ def save_results(model):
 
     result_idx = get_result_idx()
 
-    # save the parameters
+    # retrieve parameters for current experiment
     parameters = model.parameters
+    # add the name of the authenticator to the parameters
+    parameters['authenticator'] = model.authenticator.name
+    # save the parameters
     pickle.dump(parameters, open(get_params_path(result_idx), 'wb'), pickle.HIGHEST_PROTOCOL)
 
     # save the transaction logs
     agent_vars = model.log_collector.get_agent_vars_dataframe()
     agent_vars.index = agent_vars.index.droplevel(1)
-    path_transaction_log = join(FOLDER_RESULTS, '{}_transaction_log.csv'.format(result_idx))
+    path_transaction_log = get_transaction_log_path(result_idx)
     agent_vars.to_csv(path_transaction_log, index_label=False)
+
+    # save the satisfaction per timestep
+    model_vars = model.log_collector.get_model_vars_dataframe()
+    path_satisfaction_log = get_satisfaction_log_path(result_idx)
+    model_vars.to_csv(path_satisfaction_log, index_label=False)
 
     # save some customer properties
     FOLDER_CUST_PROPS = join(FOLDER_RESULTS, '{}_cust_props'.format(result_idx))

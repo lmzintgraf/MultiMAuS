@@ -15,13 +15,13 @@ def monetary_reward_per_timestep(agent_vars):
     rewards = np.zeros(num_steps)
     for step in range(num_steps):
         try:
-            success = np.array(agent_vars.loc[step]['Success'], dtype=float)
+            success = np.array(agent_vars.loc[step]['TransactionSuccessful'], dtype=float)
             fraud = np.array(agent_vars.loc[step]['Target'], dtype=float)
             amount = np.array(agent_vars.loc[step]['Amount'], dtype=float)
 
             # calculate reward
             reward = fraud * (-amount)
-            reward += (1 - fraud) * (0.025 * amount + 0.25)
+            reward += (1 - fraud) * (0.003 * amount + 0.01)
             reward *= success
 
             rewards[step] = np.sum(reward)
@@ -46,15 +46,20 @@ def satisfaction_reward_per_timestep(agent_vars):
     rewards = np.zeros(num_steps)
     for step in range(num_steps):
         try:
-            success = np.array(agent_vars.loc[step]['Success'], dtype=float)
+            success = np.array(agent_vars.loc[step]['TransactionSuccessful'], dtype=float)
+            cancelled = np.array(agent_vars.loc[step]['TransactionCancelled'], dtype=float)
             auth_steps = np.array(agent_vars.loc[step]['AuthSteps'], dtype=float)
             fraud = np.array(agent_vars.loc[step]['Target'], dtype=float)
 
-            # calculate reward
-            reward = - fraud * np.array(auth_steps == 0, dtype=int)
-            reward += (1 - fraud) * np.array(auth_steps == 0, dtype=int)
-            reward += 0.5 * (1 - fraud) * np.array(auth_steps > 0, dtype=int)
-            reward *= success
+            # calculate reward:
+            # transaction cancelled: 0
+            reward = 0 * cancelled
+            # successful transaction after 1 authentication: +1
+            reward += 1 * success * np.array(auth_steps == 0, dtype=int)
+            # successful transaction after 2 authentications: +0.5
+            reward += 0.5 * success * np.array(auth_steps > 0, dtype=int)
+            # fraudulent transaction after 1 authentication: -1
+            reward += -1 * success * fraud
 
             rewards[step] = np.sum(reward)
         except KeyError:

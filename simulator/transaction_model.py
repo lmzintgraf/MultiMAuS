@@ -54,7 +54,7 @@ class TransactionModel(Model):
                              "Target": lambda c: c.fraudster,
                              "AuthSteps": lambda c: c.curr_auth_step,
                              "TransactionCancelled": lambda c: c.curr_trans_cancelled,
-                             "TransactionAuthorised": lambda c: c.curr_trans_authorised},
+                             "TransactionSuccessful": lambda c: c.curr_trans_success},
             model_reporters={
                 "Satisfaction": lambda m: np.sum([m.customers[i].satisfaction for i in range(len(m.customers))]) / len(m.customers)})
 
