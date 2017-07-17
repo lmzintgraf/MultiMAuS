@@ -1,8 +1,22 @@
 # Multi-MAuS: A Multi-Modal Authentication Simulator
 
 Simulator for online credit card transactions that supports 
-uni-modal and multi-modal authentication.
+multi-modal authentication. 
 
+Please see the corresponding paper (MultiMAuS.pdf) for a
+detailed description of the simulator.
+
+### RUNNING THE SIMULATOR
+
+The main script that should be executed for a simulation is
+`simulator/transaction_model.py`. It needs a dictionary of
+parameters as input. The default parameters that 
+are used as input for the simulator can be found in 
+`simulator.parameters.py`.
+
+The scripts we used for the experiments in the paper are:
+`experiments/run_unimaus.py` and 
+`experiments/run_multimaus.py`.
 
 ### DATA
 
@@ -14,4 +28,11 @@ See readme file in data folder for more information.
 
 ### SIMULATOR
 
-We use the agent modelling framework mesa.
+We use the agent modelling framework mesa ()
+
+### Feature Extraction
+
+We are currently working on creating features that can be used
+for learning (e.g., classification) from the transaction logs.
+Most of this can be found in `data/features`. Note however that
+this is under development.
