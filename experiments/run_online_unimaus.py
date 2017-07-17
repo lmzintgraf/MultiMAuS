@@ -238,7 +238,7 @@ class OnlineUnimaus:
 
         # remove non-numeric columns / columns we don't need after adding features
         data.drop(["Global_Date", "Local_Date", "MerchantID", "Currency", "Country",
-                   "AuthSteps", "TransactionCancelled", "TransactionAuthorised"],
+                   "AuthSteps", "TransactionCancelled", "TransactionSuccessful"],
                   inplace=True, axis=1)
 
         # move Target column to the end
