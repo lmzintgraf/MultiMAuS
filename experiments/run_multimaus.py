@@ -22,7 +22,7 @@ def run_single():
     params['stay_prob'] = new_stay_prob
 
     plt.figure(figsize=(10, 5))
-    for a in ['random', 'oracle', 'never_second', 'heuristic50', 'heuristic100', 'always_second']:
+    for a in ['random', 'oracle', 'never_second', 'heuristic', 'always_second']:
 
         # the authenticator
         authenticator = get_authenticator(a)
@@ -44,7 +44,6 @@ def run_single():
         result_handling.save_results(model)
 
         monetary_rewards = rewards.monetary_reward_per_timestep(agent_vars)
-        satisfaction_rewards = rewards.satisfaction_reward_per_timestep(agent_vars)
         true_satisfactions = rewards.satisfaction_per_timestep(model_vars)
 
         plt.subplot(1, 2, 1)
@@ -63,10 +62,8 @@ def run_single():
 def get_authenticator(auth_type):
     if auth_type == 'random':
         return RandomAuthenticator()
-    elif auth_type == 'heuristic50':
+    elif auth_type == 'heuristic':
         return HeuristicAuthenticator(50)
-    elif auth_type == 'heuristic100':
-        return HeuristicAuthenticator(100)
     elif auth_type == 'oracle':
         return OracleAuthenticator()
     elif auth_type == 'never_second':
