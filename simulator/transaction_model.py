@@ -1,6 +1,7 @@
 from simulator.merchant import Merchant
 from mesa.time import RandomActivation
 from simulator.log_collector import LogCollector
+from simulator import parameters
 from mesa import Model
 from authenticators.simple_authenticators import NeverSecondAuthenticator
 from simulator.customers import GenuineCustomer, FraudulentCustomer
@@ -13,6 +14,8 @@ class TransactionModel(Model):
         super().__init__(seed=123)
 
         # load parameters
+        if model_parameters is None:
+            model_parameters = parameters.get_default_parameters()
         self.parameters = model_parameters
 
         # save authenticator for checking transactions
@@ -185,7 +188,6 @@ class TransactionModel(Model):
         return [Merchant(i, self) for i in range(self.parameters["num_merchants"])]
 
     def initialise_customers(self):
-        # return [self.CustomerClass(self, satisfaction=np.copy(self.parameters['init_satisfaction'])) for _ in range(self.parameters['num_customers'])]
         return [GenuineCustomer(self) for _ in range(self.parameters['num_customers'])]
 
     def initialise_fraudsters(self):
