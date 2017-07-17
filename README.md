@@ -30,7 +30,7 @@ See readme file in data folder for more information.
 
 We use the agent modelling framework mesa ()
 
-### Feature Extraction
+### FEATURE EXTRACTION
 
 We are currently working on creating features that can be used
 for learning (e.g., classification) from the transaction logs.
