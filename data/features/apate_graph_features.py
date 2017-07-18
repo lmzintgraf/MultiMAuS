@@ -86,6 +86,18 @@ class ApateGraphFeatures:
         self.num_c = len(training_data["CardID"].unique())
         self.num_m = len(training_data["MerchantID"].unique())
 
+        # these four are kinda like enums, but not really enums because I got the impression enums are slow in python
+        self.NO_INTERVAL = 0
+        self.SHORT_TERM = 1
+        self.MEDIUM_TERM = 2
+        self.LONG_TERM = 3
+
+        # local versions of them, faster access than the class members within this function
+        NO_INTERVAL = self.NO_INTERVAL
+        SHORT_TERM = self.SHORT_TERM
+        MEDIUM_TERM = self.MEDIUM_TERM
+        LONG_TERM = self.LONG_TERM
+
         # compute A^{tri} adjacency matrices of tripartite graph with various levels of decay
         rows_A = []
         cols_A = []
@@ -115,55 +127,71 @@ class ApateGraphFeatures:
         test_date = training_data.Global_Date.max()
 
         t = 0
+
+        # evaluate a bunch of function references so we don't keep re-evaluating them many times in loop
+        get_card_idx = self.get_card_idx
+        get_merchant_idx = self.get_merchant_idx
+        compute_A_entry = self.compute_A_entry
+
+        rows_extend = rows_A.extend
+        cols_extend = cols_A.extend
+        A_extend = entries_A.extend
+        A_extend_short = entries_A_short.extend
+        A_extend_medium = entries_A_medium.extend
+        A_extend_long = entries_A_long.extend
+
+        rows_r0_append = rows_r0.append
+        cols_r0_append = cols_r0.append
+        entries_r0_append = entries_r0.append
+        entries_r0_short_append = entries_r0_short.append
+        entries_r0_medium_append = entries_r0_medium.append
+        entries_r0_long_append = entries_r0_long.append
+
+        # and save these in local variables
+        num_t = self.num_t
+        num_c = self.num_c
+        num_m = self.num_m
+
         for row in training_data.itertuples():
-            c = self.get_card_idx(cards[t])
-            m = self.get_merchant_idx(merchants[t])
+            c = get_card_idx(cards[t])
+            m = get_merchant_idx(merchants[t])
 
             # compute entries in adjacency matrix with different implementations of decay
-            short_term_entry = self.compute_A_entry(row.Global_Date, test_date, gamma=0.03, interval="short")
-            medium_term_entry = self.compute_A_entry(row.Global_Date, test_date, gamma=0.004, interval="medium")
-            long_term_entry = self.compute_A_entry(row.Global_Date, test_date, gamma=0.0001, interval="long")
+            row_global_date = row.Global_Date
+            short_term_entry = compute_A_entry(row_global_date, test_date, gamma=0.03, interval=SHORT_TERM)
+            medium_term_entry = compute_A_entry(row_global_date, test_date, gamma=0.004, interval=MEDIUM_TERM)
+            long_term_entry = compute_A_entry(row_global_date, test_date, gamma=0.0001, interval=LONG_TERM)
 
-            # entry in A_{t * c}
-            rows_A.append(t)
-            cols_A.append(c + self.num_t)
-            entries_A.append(1)
-            entries_A_short.append(short_term_entry)
-            entries_A_medium.append(medium_term_entry)
-            entries_A_long.append(long_term_entry)
-
-            # entry in A_{t * m}
-            rows_A.append(t)
-            cols_A.append(m + self.num_c + self.num_t)
-            entries_A.append(1)
-            entries_A_short.append(short_term_entry)
-            entries_A_medium.append(medium_term_entry)
-            entries_A_long.append(long_term_entry)
-
-            # entry in A_{c * t}
-            rows_A.append(c + self.num_t)
-            cols_A.append(t)
-            entries_A.append(1)
-            entries_A_short.append(short_term_entry)
-            entries_A_medium.append(medium_term_entry)
-            entries_A_long.append(long_term_entry)
-
-            # entry in A_{m * t}
-            rows_A.append(m + self.num_c + self.num_t)
-            cols_A.append(t)
-            entries_A.append(1)
-            entries_A_short.append(short_term_entry)
-            entries_A_medium.append(medium_term_entry)
-            entries_A_long.append(long_term_entry)
+            '''
+                entry in A_{t * c}, entry in A_{t * m},     entry in A_{c * t}, entry in A_{m * t}
+            '''
+            rows_extend(
+                [t,                 t,                      c + num_t,          m + num_c + num_t]
+            )
+            cols_extend(
+                [c + num_t,         m + num_c + num_t,      t,                  t]
+            )
+            A_extend(
+                [1.0,               1.0,                    1.0,                1.0]
+            )
+            A_extend_short(
+                [short_term_entry,  short_term_entry,       short_term_entry,   short_term_entry]
+            )
+            A_extend_medium(
+                [medium_term_entry, medium_term_entry,      medium_term_entry,  medium_term_entry]
+            )
+            A_extend_long(
+                [long_term_entry,   long_term_entry,        long_term_entry,    long_term_entry]
+            )
 
             if row.Target == 1:
                 # fraudulent transaction, add entries to r_0 vectors
-                rows_r0.append(t)
-                cols_r0.append(0)
-                entries_r0.append(1)
-                entries_r0_short.append(short_term_entry)
-                entries_r0_medium.append(medium_term_entry)
-                entries_r0_long.append(long_term_entry)
+                rows_r0_append(t)
+                cols_r0_append(0.0)
+                entries_r0_append(1.0)
+                entries_r0_short_append(short_term_entry)
+                entries_r0_medium_append(medium_term_entry)
+                entries_r0_long_append(long_term_entry)
 
             # increment transaction counter
             t += 1
@@ -172,7 +200,7 @@ class ApateGraphFeatures:
 
         # we'll use a sparse matrix. May not yet be necessary for original dataset, but will be necessary
         # for larger datasets from simulator
-        dim = self.num_t + self.num_c + self.num_m
+        dim = num_t + num_c + num_m
         A_tri_shape = (dim, dim)
 
         self.A_tri = coo_matrix((entries_A, (rows_A, cols_A)), shape=A_tri_shape).tocsr()
@@ -191,10 +219,11 @@ class ApateGraphFeatures:
 
         # normalize rows to sum up to 1.0 for all the A_tri matrices (first paper says normalize columns,
         # but we structured the matrix as in second paper, so we need to normalize rows)
-        self.A_tri = self.normalize_rows(self.A_tri)
-        self.A_tri_short = self.normalize_rows(self.A_tri_short)
-        self.A_tri_medium = self.normalize_rows(self.A_tri_medium)
-        self.A_tri_long = self.normalize_rows(self.A_tri_long)
+        normalize_rows = self.normalize_rows
+        self.A_tri = normalize_rows(self.A_tri)
+        self.A_tri_short = normalize_rows(self.A_tri_short)
+        self.A_tri_medium = normalize_rows(self.A_tri_medium)
+        self.A_tri_long = normalize_rows(self.A_tri_long)
 
         #print(str(datetime.now()), ": Finished normalizing matrices...")
 
@@ -207,20 +236,21 @@ class ApateGraphFeatures:
         #print(str(datetime.now()), ": Finished normalizing vectors...")
 
         # run convergence procedure for the four different levels of decay
-        self.rkc = self.converge(self.r0, self.A_tri,
-                                 alpha=self.ALPHA, convergence_threshold=self.CONVERGENCE_THRESHOLD)
+        converge = self.converge
+        self.rkc = converge(self.r0, self.A_tri,
+                            alpha=self.ALPHA, convergence_threshold=self.CONVERGENCE_THRESHOLD)
         #print(str(datetime.now()), ": Finished convergence without decay...")
 
-        self.rkc_short = self.converge(self.r0_short, self.A_tri_short,
-                                       alpha=self.ALPHA, convergence_threshold=self.CONVERGENCE_THRESHOLD)
+        self.rkc_short = converge(self.r0_short, self.A_tri_short,
+                                  alpha=self.ALPHA, convergence_threshold=self.CONVERGENCE_THRESHOLD)
         #print(str(datetime.now()), ": Finished convergence with short-term decay...")
 
-        self.rkc_medium = self.converge(self.r0_medium, self.A_tri_medium,
-                                        alpha=self.ALPHA, convergence_threshold=self.CONVERGENCE_THRESHOLD)
+        self.rkc_medium = converge(self.r0_medium, self.A_tri_medium,
+                                   alpha=self.ALPHA, convergence_threshold=self.CONVERGENCE_THRESHOLD)
         #print(str(datetime.now()), ": Finished convergence with medium-term decay...")
 
-        self.rkc_long = self.converge(self.r0_long, self.A_tri_long,
-                                      alpha=self.ALPHA, convergence_threshold=self.CONVERGENCE_THRESHOLD)
+        self.rkc_long = converge(self.r0_long, self.A_tri_long,
+                                 alpha=self.ALPHA, convergence_threshold=self.CONVERGENCE_THRESHOLD)
         #print(str(datetime.now()), ": Finished convergence with long-term decay...")
 
         self.A_tri.eliminate_zeros()
@@ -232,6 +262,27 @@ class ApateGraphFeatures:
         self.rkc_short.eliminate_zeros()
         self.rkc_medium.eliminate_zeros()
         self.rkc_long.eliminate_zeros()
+
+        # we'll compute the following things once when we need them
+        self.rkc_avg_card = None
+        self.rkc_short_avg_card = None
+        self.rkc_medium_avg_card = None
+        self.rkc_long_avg_card = None
+
+        self.rkc_avg_mer = None
+        self.rkc_short_avg_mer = None
+        self.rkc_medium_avg_mer = None
+        self.rkc_long_avg_mer = None
+
+        self.A_tri_avg_card = None
+        self.A_tri_short_avg_card = None
+        self.A_tri_medium_avg_card = None
+        self.A_tri_long_avg_card = None
+
+        self.A_tri_avg_mer = None
+        self.A_tri_short_avg_mer = None
+        self.A_tri_medium_avg_mer = None
+        self.A_tri_long_avg_mer = None
 
     def add_graph_features(self, test_data):
         """
@@ -247,34 +298,33 @@ class ApateGraphFeatures:
         """
 
         # add four scores for card holder (four levels of decay)
-        test_data["CHScore"] = test_data.apply(lambda row: self.get_ch_score(row, ""), axis=1)
-        test_data["CHScore_ST"] = test_data.apply(lambda row: self.get_ch_score(row, "short"), axis=1)
-        test_data["CHScore_MT"] = test_data.apply(lambda row: self.get_ch_score(row, "medium"), axis=1)
-        test_data["CHScore_LT"] = test_data.apply(lambda row: self.get_ch_score(row, "long"), axis=1)
+        get_ch_score = self.get_ch_score
+        test_data["CHScore"] = test_data.apply(lambda row: get_ch_score(row, self.NO_INTERVAL), axis=1)
+        test_data["CHScore_ST"] = test_data.apply(lambda row: get_ch_score(row, self.SHORT_TERM), axis=1)
+        test_data["CHScore_MT"] = test_data.apply(lambda row: get_ch_score(row, self.MEDIUM_TERM), axis=1)
+        test_data["CHScore_LT"] = test_data.apply(lambda row: get_ch_score(row, self.LONG_TERM), axis=1)
         #print(str(datetime.now()), ": Finished computing Card Holder features...")
 
         # add four scores for merchant (four levels of decay)
-        test_data["MerScore"] = test_data.apply(lambda row: self.get_mer_score(row, ""), axis=1)
-        test_data["MerScore_ST"] = test_data.apply(lambda row: self.get_mer_score(row, "short"), axis=1)
-        test_data["MerScore_MT"] = test_data.apply(lambda row: self.get_mer_score(row, "medium"), axis=1)
-        test_data["MerScore_LT"] = test_data.apply(lambda row: self.get_mer_score(row, "long"), axis=1)
+        get_mer_score = self.get_mer_score
+        test_data["MerScore"] = test_data.apply(lambda row: get_mer_score(row, self.NO_INTERVAL), axis=1)
+        test_data["MerScore_ST"] = test_data.apply(lambda row: get_mer_score(row, self.SHORT_TERM), axis=1)
+        test_data["MerScore_MT"] = test_data.apply(lambda row: get_mer_score(row, self.MEDIUM_TERM), axis=1)
+        test_data["MerScore_LT"] = test_data.apply(lambda row: get_mer_score(row, self.LONG_TERM), axis=1)
         #print(str(datetime.now()), ": Finished computing Merchant features...")
 
         # make sure all our A^{tri} matrices have sorted indices (important before computing transaction scores)
-        if not self.A_tri.has_sorted_indices:
-            self.A_tri.sort_indices()
-        if not self.A_tri_short.has_sorted_indices:
-            self.A_tri_short.sort_indices()
-        if not self.A_tri_medium.has_sorted_indices:
-            self.A_tri_medium.sort_indices()
-        if not self.A_tri_long.has_sorted_indices:
-            self.A_tri_long.sort_indices()
+        self.A_tri.sort_indices()
+        self.A_tri_short.sort_indices()
+        self.A_tri_medium.sort_indices()
+        self.A_tri_long.sort_indices()
 
         # add four scores for transaction (four levels of decay)
-        test_data["TrxScore"] = test_data.apply(lambda row: self.compute_trx_score(row, ""), axis=1)
-        test_data["TrxScore_ST"] = test_data.apply(lambda row: self.compute_trx_score(row, "short"), axis=1)
-        test_data["TrxScore_MT"] = test_data.apply(lambda row: self.compute_trx_score(row, "medium"), axis=1)
-        test_data["TrxScore_LT"] = test_data.apply(lambda row: self.compute_trx_score(row, "long"), axis=1)
+        compute_trx_score = self.compute_trx_score
+        test_data["TrxScore"] = test_data.apply(lambda row: compute_trx_score(row, self.NO_INTERVAL), axis=1)
+        test_data["TrxScore_ST"] = test_data.apply(lambda row: compute_trx_score(row, self.SHORT_TERM), axis=1)
+        test_data["TrxScore_MT"] = test_data.apply(lambda row: compute_trx_score(row, self.MEDIUM_TERM), axis=1)
+        test_data["TrxScore_LT"] = test_data.apply(lambda row: compute_trx_score(row, self.LONG_TERM), axis=1)
         #print(str(datetime.now()), ": Finished computing Transaction features...")
 
     def compute_trx_score(self, row, interval):
@@ -314,13 +364,13 @@ class ApateGraphFeatures:
 
                 if old_merchant_idx == merchant:
                     # found a match, use transaction scores of this transaction
-                    if interval == "":
+                    if interval == self.NO_INTERVAL:
                         return self.rkc[nonzero_col, 0]
-                    elif interval == "short":
+                    elif interval == self.SHORT_TERM:
                         return self.rkc_short[nonzero_col, 0]
-                    elif interval == "medium":
+                    elif interval == self.MEDIUM_TERM:
                         return self.rkc_medium[nonzero_col, 0]
-                    elif interval == "long":
+                    elif interval == self.LONG_TERM:
                         return self.rkc_long[nonzero_col, 0]
                     else:
                         print("ERROR: unknown interval type!")
@@ -333,33 +383,129 @@ class ApateGraphFeatures:
         if card < self.num_c:
             card_col = self.num_t + card
 
-            if interval == "":
-                card_influence = (1.0 / (self.A_tri.getcol(card_col).sum() + 1)) * row["CHScore"]
-            elif interval == "short":
-                card_influence = (1.0 / (self.A_tri_short.getcol(card_col).sum() + 1)) * row["CHScore_ST"]
-            elif interval == "medium":
-                card_influence = (1.0 / (self.A_tri_medium.getcol(card_col).sum() + 1)) * row["CHScore_MT"]
-            elif interval == "long":
-                card_influence = (1.0 / (self.A_tri_long.getcol(card_col).sum() + 1)) * row["CHScore_LT"]
+            if interval == self.NO_INTERVAL:
+                card_influence = (row["CHScore"] / (self.A_tri.getcol(card_col).sum() + 1))
+            elif interval == self.SHORT_TERM:
+                card_influence = (row["CHScore_ST"] / (self.A_tri_short.getcol(card_col).sum() + 1))
+            elif interval == self.MEDIUM_TERM:
+                card_influence = (row["CHScore_MT"] / (self.A_tri_medium.getcol(card_col).sum() + 1))
+            elif interval == self.LONG_TERM:
+                card_influence = (row["CHScore_LT"] / (self.A_tri_long.getcol(card_col).sum() + 1))
+            else:
+                print("ERROR: unknown interval type!")
+        else:
+            # don't have entries for this card in matrix, use average of all cards instead
+            #
+            # TODO
+            # could probably do something smarter, something involving the number of unlabeled transactions
+            # from this card?
+            if interval == self.NO_INTERVAL:
+                if self.A_tri_avg_card is None:
+                    # need to compute avg
+                    total = 0
+                    for c in range(self.num_c):
+                        total += self.A_tri.getcol(self.num_t + c).sum()
+                    self.A_tri_avg_card = total / self.num_c
+
+                card_influence = (row["CHScore"] / (self.A_tri_avg_card + 1))
+
+            elif interval == self.SHORT_TERM:
+                if self.A_tri_short_avg_card is None:
+                    # need to compute avg
+                    total = 0
+                    for c in range(self.num_c):
+                        total += self.A_tri_short.getcol(self.num_t + c).sum()
+                    self.A_tri_short_avg_card = total / self.num_c
+
+                card_influence = (row["CHScore_ST"] / (self.A_tri_short_avg_card + 1))
+
+            elif interval == self.MEDIUM_TERM:
+                if self.A_tri_medium_avg_card is None:
+                    # need to compute avg
+                    total = 0
+                    for c in range(self.num_c):
+                        total += self.A_tri_medium.getcol(self.num_t + c).sum()
+                    self.A_tri_medium_avg_card = total / self.num_c
+
+                card_influence = (row["CHScore_MT"] / (self.A_tri_medium_avg_card + 1))
+
+            elif interval == self.LONG_TERM:
+                if self.A_tri_long_avg_card is None:
+                    # need to compute avg
+                    total = 0
+                    for c in range(self.num_c):
+                        total += self.A_tri_long.getcol(self.num_t + c).sum()
+                    self.A_tri_long_avg_card = total / self.num_c
+
+                card_influence = (row["CHScore_LT"] / (self.A_tri_long_avg_card + 1))
+
             else:
                 print("ERROR: unknown interval type!")
 
         if merchant < self.num_m:
             merchant_col = self.num_t + self.num_c + merchant
 
-            if interval == "":
-                merchant_influence = (1.0 / (self.A_tri.getcol(merchant_col).sum() + 1)) * row["MerScore"]
-            elif interval == "short":
-                merchant_influence = (1.0 / (self.A_tri_short.getcol(merchant_col).sum() + 1)) * row["MerScore_ST"]
-            elif interval == "medium":
-                merchant_influence = (1.0 / (self.A_tri_medium.getcol(merchant_col).sum() + 1)) * row["MerScore_MT"]
-            elif interval == "long":
-                merchant_influence = (1.0 / (self.A_tri_long.getcol(merchant_col).sum() + 1)) * row["MerScore_LT"]
+            if interval == self.NO_INTERVAL:
+                merchant_influence = (row["MerScore"] / (self.A_tri.getcol(merchant_col).sum() + 1))
+            elif interval == self.SHORT_TERM:
+                merchant_influence = (row["MerScore_ST"] / (self.A_tri_short.getcol(merchant_col).sum() + 1))
+            elif interval == self.MEDIUM_TERM:
+                merchant_influence = (row["MerScore_MT"] / (self.A_tri_medium.getcol(merchant_col).sum() + 1))
+            elif interval == self.LONG_TERM:
+                merchant_influence = (row["MerScore_LT"] / (self.A_tri_long.getcol(merchant_col).sum() + 1))
+            else:
+                print("ERROR: unknown interval type!")
+        else:
+            # don't have entries for this merchant in matrix, use average of all merchants instead
+            #
+            # TODO
+            # could probably do something smarter, something involving the number of unlabeled transactions
+            # at this merchant?
+            if interval == self.NO_INTERVAL:
+                if self.A_tri_avg_mer is None:
+                    # need to compute avg
+                    total = 0
+                    for m in range(self.num_m):
+                        total += self.A_tri.getcol(self.num_t + self.num_c + m).sum()
+                    self.A_tri_avg_mer = total / self.num_m
+
+                merchant_influence = (row["MerScore"] / (self.A_tri_avg_mer + 1))
+
+            elif interval == self.SHORT_TERM:
+                if self.A_tri_short_avg_mer is None:
+                    # need to compute avg
+                    total = 0
+                    for m in range(self.num_m):
+                        total += self.A_tri_short.getcol(self.num_t + self.num_c + m).sum()
+                    self.A_tri_short_avg_mer = total / self.num_m
+
+                merchant_influence = (row["MerScore_ST"] / (self.A_tri_short_avg_mer + 1))
+
+            elif interval == self.MEDIUM_TERM:
+                if self.A_tri_medium_avg_mer is None:
+                    # need to compute avg
+                    total = 0
+                    for m in range(self.num_m):
+                        total += self.A_tri_medium.getcol(self.num_t + self.num_c + m).sum()
+                    self.A_tri_medium_avg_mer = total / self.num_m
+
+                merchant_influence = (row["MerScore_MT"] / (self.A_tri_medium_avg_mer + 1))
+
+            elif interval == self.LONG_TERM:
+                if self.A_tri_long_avg_mer is None:
+                    # need to compute avg
+                    total = 0
+                    for m in range(self.num_m):
+                        total += self.A_tri_long.getcol(self.num_t + self.num_c + m).sum()
+                    self.A_tri_long_avg_mer = total / self.num_m
+
+                merchant_influence = (row["MerScore_LT"] / (self.A_tri_long_avg_mer + 1))
+
             else:
                 print("ERROR: unknown interval type!")
 
-        # TODO: in cases where both merchant and card holder are unknown, this will always return 0.
-        # TODO: It may be interesting to try using the average scores throughout the entire network instead?
+        # NOTE: in original papers, in cases where both merchant and card holder are unknown, this
+        # would always return 0. In our case, we return kind of averages throughout the entire learning set
 
         return merchant_influence + card_influence
 
@@ -381,14 +527,16 @@ class ApateGraphFeatures:
         timedelta = test_date - transaction_date
 
         t = 0
-        if interval == "short":
-            t = timedelta.total_seconds() / 60          # use minutes
-        elif interval == "medium":
-            t = timedelta.total_seconds() / (60 * 60)   # use hours
-        elif interval == "long":
-            t = timedelta.days                  # use days
+        if interval == self.SHORT_TERM:
+            t = timedelta.total_seconds() / 60.0        # use minutes
+        elif interval == self.MEDIUM_TERM:
+            t = timedelta.total_seconds() / 3600.0      # use hours
+        elif interval == self.LONG_TERM:
+            t = timedelta.days                          # use days
         else:
             print("WARNING: Unknown interval in compute_A_entry(): ", interval)
+
+        t /= 100.0   # we want longer time windows for our data
 
         # just a sanity check, we should have ''reverse decay'' if the given test_date is earlier
         # than some transactions in the training data
@@ -450,15 +598,54 @@ class ApateGraphFeatures:
         card = self.get_card_idx(row.CardID)
 
         if card >= self.num_c:
-            # this card ID doesn't appear in training data at all
-            return 0
-        elif interval == "":
+            # this card ID doesn't appear in training data at all, use average of all cards instead
+            if interval == self.NO_INTERVAL:
+                if self.rkc_avg_card is None:
+                    # need to compute avg first
+                    total = 0
+                    for c in range(self.num_c):
+                        total += self.rkc[self.num_t + c, 0]
+                    self.rkc_avg_card = total / self.num_c
+
+                return self.rkc_avg_card
+
+            elif interval == self.SHORT_TERM:
+                if self.rkc_short_avg_card is None:
+                    # need to compute avg first
+                    total = 0
+                    for c in range(self.num_c):
+                        total += self.rkc_short[self.num_t + c, 0]
+                    self.rkc_short_avg_card = total / self.num_c
+
+                return self.rkc_short_avg_card
+
+            elif interval == self.MEDIUM_TERM:
+                if self.rkc_medium_avg_card is None:
+                    # need to compute avg first
+                    total = 0
+                    for c in range(self.num_c):
+                        total += self.rkc_medium[self.num_t + c, 0]
+                    self.rkc_medium_avg_card = total / self.num_c
+
+                return self.rkc_medium_avg_card
+
+            elif interval == self.LONG_TERM:
+                if self.rkc_long_avg_card is None:
+                    # need to compute avg first
+                    total = 0
+                    for c in range(self.num_c):
+                        total += self.rkc_long[self.num_t + c, 0]
+                    self.rkc_long_avg_card = total / self.num_c
+
+                return self.rkc_long_avg_card
+
+        elif interval == self.NO_INTERVAL:
             return self.rkc[self.num_t + card, 0]
-        elif interval == "short":
+        elif interval == self.SHORT_TERM:
             return self.rkc_short[self.num_t + card, 0]
-        elif interval == "medium":
+        elif interval == self.MEDIUM_TERM:
             return self.rkc_medium[self.num_t + card, 0]
-        elif interval == "long":
+        elif interval == self.LONG_TERM:
             return self.rkc_long[self.num_t + card, 0]
 
     def get_mer_score(self, row, interval):
@@ -476,15 +663,54 @@ class ApateGraphFeatures:
         merchant = self.get_merchant_idx(row.MerchantID)
 
         if merchant >= self.num_m:
-            # this merchant ID doesn't appear in training data at all
-            return 0
-        elif interval == "":
+            # this merchant ID doesn't appear in training data at all, use average of all cards instead
+            if interval == self.NO_INTERVAL:
+                if self.rkc_avg_mer is None:
+                    # need to compute avg first
+                    total = 0
+                    for m in range(self.num_m):
+                        total += self.rkc[self.num_t + self.num_c + m, 0]
+                    self.rkc_avg_mer = total / self.num_m
+
+                return self.rkc_avg_mer
+
+            elif interval == self.SHORT_TERM:
+                if self.rkc_short_avg_mer is None:
+                    # need to compute avg first
+                    total = 0
+                    for m in range(self.num_m):
+                        total += self.rkc_short[self.num_t + self.num_c + m, 0]
+                    self.rkc_short_avg_mer = total / self.num_m
+
+                return self.rkc_short_avg_mer
+
+            elif interval == self.MEDIUM_TERM:
+                if self.rkc_medium_avg_mer is None:
+                    # need to compute avg first
+                    total = 0
+                    for m in range(self.num_m):
+                        total += self.rkc_medium[self.num_t + self.num_c + m, 0]
+                    self.rkc_medium_avg_mer = total / self.num_m
+
+                return self.rkc_medium_avg_mer
+
+            elif interval == self.LONG_TERM:
+                if self.rkc_long_avg_mer is None:
+                    # need to compute avg first
+                    total = 0
+                    for m in range(self.num_m):
+                        total += self.rkc_long[self.num_t + self.num_c + m, 0]
+                    self.rkc_long_avg_mer = total / self.num_m
+
+                return self.rkc_long_avg_mer
+
+        elif interval == self.NO_INTERVAL:
             return self.rkc[self.num_t + self.num_c + merchant, 0]
-        elif interval == "short":
+        elif interval == self.SHORT_TERM:
             return self.rkc_short[self.num_t + self.num_c + merchant, 0]
-        elif interval == "medium":
+        elif interval == self.MEDIUM_TERM:
             return self.rkc_medium[self.num_t + self.num_c + merchant, 0]
-        elif interval == "long":
+        elif interval == self.LONG_TERM:
             return self.rkc_long[self.num_t + self.num_c + merchant, 0]
 
     def normalize_rows(self, matrix):
@@ -499,12 +725,7 @@ class ApateGraphFeatures:
 
         # We'll normalize the row to sum up to 1 by pre-multiplying by a matrix
         # that contains the scalars for every row on the diagonal
-        scalars = []
-
-        for i in range(matrix.shape[0]):
-            row = matrix.getrow(i)
-            row_sum = row.sum()
-            scalars.append(1.0 / row_sum)
+        scalars = [1.0 / matrix.getrow(i).sum() for i in range(matrix.shape[0])]
 
         return diags(scalars, 0) * matrix
 

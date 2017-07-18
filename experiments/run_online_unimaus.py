@@ -219,6 +219,7 @@ class OnlineUnimaus:
         else:
             print("data is not None")
             print(data.head())
+            print("num fraudulent transactions in data = ", data.loc[data["Target"] == 1].shape[0])
 
     def process_data(self, data):
         """
@@ -241,7 +242,7 @@ class OnlineUnimaus:
                    "AuthSteps", "TransactionCancelled", "TransactionSuccessful"],
                   inplace=True, axis=1)
 
-        # move Target column to the end
+        # move CardID and Target columns to the end
         data = data[[col for col in data if col != "Target" and col != "CardID"] + ["CardID", "Target"]]
 
         return data

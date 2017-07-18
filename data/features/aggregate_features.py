@@ -116,7 +116,7 @@ class AggregateFeatures:
         return data
 
     def add_historical_features(self, data,
-                                time_frames=[1, 3, 6, 12, 18, 24, 72, 168],
+                                time_frames=[100, 300, 600, 1200, 1800, 2400, 7200, 16800],
                                 conditions=((), ('MerchantID',), ("Country",))):
         """
         Adds multiple historical features to the given dataset. Explanation:
@@ -162,8 +162,9 @@ class AggregateFeatures:
         # add our new columns, with all 0s by default
         for feature_type in ("Num", "Amt_Sum"):
             for time_frame in time_frames:
+                time_frame_str = str(time_frame)
                 for cond in conditions:
-                    new_col_name = feature_type + "_" + str(time_frame)
+                    new_col_name = "%s_%s" % (feature_type, time_frame_str)
 
                     for cond_part in cond:
                         new_col_name += "_" + cond_part
@@ -176,6 +177,9 @@ class AggregateFeatures:
         #print(str(datetime.now()), ": Added all-zero columns for historical features")
 
         # now we have all the columns ready, and we can loop through rows, handling all features per row at once
+        transactions_by_card_ids = self.transactions_by_card_ids
+        extract_transactions_before = self.extract_transactions_before
+        extract_transactions_after = self.extract_transactions_after
         for row in data.itertuples():
             # date of the row we're adding features for
             row_date = row.Global_Date
@@ -184,8 +188,8 @@ class AggregateFeatures:
             row_card_id = row.CardID
 
             # select all training data with correct Card ID, and with a date earlier than row
-            card_transactions = self.transactions_by_card_ids[row_card_id]
-            matching_data = self.extract_transactions_before(card_transactions, row_date)
+            card_transactions = transactions_by_card_ids[row_card_id]
+            matching_data = extract_transactions_before(card_transactions, row_date)
 
             if matching_data is None:
                 continue
@@ -193,10 +197,11 @@ class AggregateFeatures:
             # loop over our time-frames in reverse order, so that we can gradually cut out more and more data
             for time_frame_idx in range(len(time_frames) - 1, -1, -1):
                 time_frame = time_frames[time_frame_idx]
+                time_frame_str = str(time_frame)
 
                 # reduce matching data to part that fits within this time frame
                 earliest_allowed_date = row_date - timedelta(hours=time_frame)
-                matching_data = self.extract_transactions_after(matching_data, earliest_allowed_date)
+                matching_data = extract_transactions_after(matching_data, earliest_allowed_date)
 
                 if matching_data is None:
                     break
@@ -205,8 +210,8 @@ class AggregateFeatures:
                 for condition in conditions:
                     conditional_matching_data = matching_data
 
-                    col_name_num = "Num_" + str(time_frame)
-                    col_name_amt = "Amt_Sum_" + str(time_frame)
+                    col_name_num = "Num_" + time_frame_str
+                    col_name_amt = "Amt_Sum_" + time_frame_str
 
                     # loop through individual parts of the condition
                     for condition_term in condition:
@@ -262,6 +267,16 @@ class AggregateFeatures:
         #print(str(datetime.now()), ": Added all-one columns for time-of-day features")
 
         # now we have all the columns ready, and we can loop through rows, handling all features per row at once
+        transactions_by_card_ids = self.transactions_by_card_ids
+        extract_transactions_before = self.extract_transactions_before
+        extract_transactions_after = self.extract_transactions_after
+        time_to_circle = self.time_to_circle
+        sin = np.sin
+        cos = np.cos
+        arctan2 = np.arctan2
+        estimate_von_mises_kappa = self.estimate_von_mises_kappa
+        exp = np.exp
+
         for row in data.itertuples():
             # date of the row we're adding features for
             row_date = row.Global_Date
@@ -270,8 +285,8 @@ class AggregateFeatures:
             row_card_id = row.CardID
 
             # select all training data with correct Card ID, and with a date earlier than row
-            card_transactions = self.transactions_by_card_ids[row_card_id]
-            matching_data = self.extract_transactions_before(card_transactions, row_date)
+            card_transactions = transactions_by_card_ids[row_card_id]
+            matching_data = extract_transactions_before(card_transactions, row_date)
 
             if matching_data is None:
                 continue
@@ -282,17 +297,17 @@ class AggregateFeatures:
 
                 # reduce matching data to part that fits within this time frame
                 earliest_allowed_date = row_date - timedelta(days=time_frame)
-                matching_data = self.extract_transactions_after(matching_data, earliest_allowed_date)
+                matching_data = extract_transactions_after(matching_data, earliest_allowed_date)
 
                 if matching_data is None:
                     break
 
                 # Important to use Local_Date here! When analysing what's normal behaviour for the customer,
                 # we care about their local time.
-                time_angles = [self.time_to_circle(transaction.Local_Date)
+                time_angles = [time_to_circle(transaction.Local_Date)
                                for transaction in matching_data.itertuples()]
 
-                row_t = self.time_to_circle(row.Local_Date)
+                row_t = time_to_circle(row.Local_Date)
 
                 N = len(time_angles)
 
@@ -303,12 +318,12 @@ class AggregateFeatures:
                     # following estimation of mu looks different from what's described in [2], but is actually
                     # equivalent, see: https://en.wikipedia.org/wiki/Atan2#Definition_and_computation (expression
                     # derived from the tangent half-angle formula)
-                    phi = sum([np.sin(val) for val in time_angles])
-                    psi = sum([np.cos(val) for val in time_angles])
-                    mu = np.arctan2(phi, psi)
+                    phi = sum([sin(val) for val in time_angles])
+                    psi = sum([cos(val) for val in time_angles])
+                    mu = arctan2(phi, psi)
 
                     # sigma in [2] = 1 / kappa
-                    kappa = self.estimate_von_mises_kappa(phi, psi, N)
+                    kappa = estimate_von_mises_kappa(phi, psi, N)
 
                 '''
                 The commented code correctly computes the actual values of the probability density function
@@ -323,8 +338,8 @@ class AggregateFeatures:
                 prob_density_at_mean = np.exp(kappa) / (2 * np.pi * i0_kappa)
                 '''
 
-                prob_density_at_t = np.exp(kappa * np.cos(row_t - mu))
-                prob_density_at_mean = np.exp(kappa)
+                prob_density_at_t = exp(kappa * cos(row_t - mu))
+                prob_density_at_mean = exp(kappa)
 
                 # add the feature
                 data.set_value(row.Index, "Prob_Density_Time_" + str(time_frame),
@@ -340,13 +355,15 @@ class AggregateFeatures:
         :param data:
             Labelled training data
         """
+        transactions_by_card_ids = self.transactions_by_card_ids
+
         for card_id in data.CardID.unique():
-            if card_id not in self.transactions_by_card_ids:
+            if card_id not in transactions_by_card_ids:
                 # card ID not in map yet
-                self.transactions_by_card_ids[card_id] = data.loc[data["CardID"] == card_id]
+                transactions_by_card_ids[card_id] = data.loc[data["CardID"] == card_id]
             else:
                 # card ID already in map, so should append
-                self.transactions_by_card_ids[card_id] = self.transactions_by_card_ids[card_id]\
+                transactions_by_card_ids[card_id] = transactions_by_card_ids[card_id]\
                     .append(data.loc[data["CardID"] == card_id], ignore_index=True)
 
     def compute_first_order_times_dict(self, training_data):
@@ -357,11 +374,13 @@ class AggregateFeatures:
         :param training_data:
             Labelled training data
         """
+        first_order_times_dict = self.first_order_times_dict
+
         for row in training_data.itertuples():
             card = row.CardID
 
-            if card not in self.first_order_times_dict:
-                self.first_order_times_dict[card] = row.Global_Date
+            if card not in first_order_times_dict:
+                first_order_times_dict[card] = row.Global_Date
 
     def compute_fraud_ratio_dicts(self, training_data, column):
         """
@@ -410,14 +429,15 @@ class AggregateFeatures:
             Estimate of kappa (with some special cases covered for improved numeric stability. Essentially
             this introduces a bias towards uniform distributions for low N)
         """
-        denominator = ((((1. / N) * phi) ** 2) + (((1. / N) * psi) ** 2))
+        N_inv = 1. / N
+        denominator = (((N_inv * phi) ** 2) + ((N_inv * psi) ** 2))
         denominator = min(max(0.0001, denominator), 0.9999)
 
         kappa = 1. / np.sqrt(np.log(1. / denominator))
 
         # if we have low N, we want to bias towards low kappa (prior assumption of more uniform distribution)
         if N < 5:
-            kappa = min(1 - (1 / N), kappa)
+            kappa = min(1 - N_inv, kappa)
 
         return kappa
 
@@ -562,7 +582,7 @@ class AggregateFeatures:
 
         if cardID in self.first_order_times_dict:
             time_delta = date - self.first_order_times_dict[cardID]
-            return max(0, float(time_delta.days * 24) + (float(time_delta.seconds) / (60 * 60)))
+            return max(0, float(time_delta.days * 24.0) + (float(time_delta.seconds) / 3600.0))
 
         # first time we see this card, so simply return 0
         return 0
@@ -602,6 +622,6 @@ class AggregateFeatures:
             Angle representing point on circle
         """
         hour_float = \
-            time.hour + time.minute / 60.0 + time.second / (60.0 * 60.0) + time.microsecond / (60.0 * 60.0 * 1000000.0)
+            time.hour + time.minute / 60.0 + time.second / 3600.0 + time.microsecond / (3600.0 * 1000000.0)
 
         return hour_float / 12 * np.pi - np.pi
