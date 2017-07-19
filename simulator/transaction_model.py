@@ -18,6 +18,11 @@ class TransactionModel(Model):
             model_parameters = parameters.get_default_parameters()
         self.parameters = model_parameters
 
+        # calculate the intrinsic transaction motivation per customer (which is proportional to number of customers/fraudsters)
+        # we keep this separate because then we can play around with the number of customers/fraudsters,
+        # but individual behaviour doesn't change
+        self.parameters['transaction motivation'] = np.array([1./3333, 1./55])
+
         # save authenticator for checking transactions
         self.authenticator = authenticator
 

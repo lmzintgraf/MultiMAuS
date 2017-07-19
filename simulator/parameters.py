@@ -27,11 +27,6 @@ def get_default_parameters():
         'num_customers': 3333,
         'num_fraudsters': 55,
 
-        # the intrinsic transaction motivation per customer (is proportional to number of customers/fraudsters)
-        # we keep this separate because then we can play around with the number of customers/fraudsters,
-        # but individual behaviour doesn't change
-        'transaction_motivation': np.array([1./3333, 1./55]),
-
         # the initial satisfaction of customers
         'init_satisfaction': 1.,
 
