@@ -52,8 +52,8 @@ class TransactionModel(Model):
     @staticmethod
     def initialise_log_collector():
         return LogCollector(
-            agent_reporters={"Global_Date": lambda c: c.model.curr_global_date,
-                             "Local_Date": lambda c: c.local_datetime,
+            agent_reporters={"Global_Date": lambda c: c.model.curr_global_date.replace(tzinfo=None),
+                             "Local_Date": lambda c: c.local_datetime.replace(tzinfo=None),
                              "CardID": lambda c: c.card_id,
                              "MerchantID": lambda c: c.curr_merchant.unique_id,
                              "Amount": lambda c: c.curr_amount,
