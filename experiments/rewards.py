@@ -30,6 +30,44 @@ def monetary_reward_per_timestep(agent_vars):
     return rewards
 
 
+def money_lost_per_timestep(agent_vars):
+    num_steps = 366*24
+    rewards = np.zeros(num_steps)
+    for step in range(num_steps):
+        try:
+            success = np.array(agent_vars.loc[step]['TransactionSuccessful'], dtype=float)
+            fraud = np.array(agent_vars.loc[step]['Target'], dtype=float)
+            amount = np.array(agent_vars.loc[step]['Amount'], dtype=float)
+
+            # calculate reward
+            reward = (1 - fraud) * (0.003 * amount + 0.01)
+            reward *= success
+
+            rewards[step] = np.sum(reward)
+        except KeyError:
+            pass
+    return rewards
+
+
+def money_made_per_timestep(agent_vars):
+    num_steps = 366*24
+    rewards = np.zeros(num_steps)
+    for step in range(num_steps):
+        try:
+            success = np.array(agent_vars.loc[step]['TransactionSuccessful'], dtype=float)
+            fraud = np.array(agent_vars.loc[step]['Target'], dtype=float)
+            amount = np.array(agent_vars.loc[step]['Amount'], dtype=float)
+
+            # calculate reward
+            reward = fraud * (-amount)
+            reward *= success
+
+            rewards[step] = np.sum(reward)
+        except KeyError:
+            pass
+    return rewards
+
+
 def satisfaction_reward_per_timestep(agent_vars):
     """
     Get the satisfaction reward (i.e., estimated satisfaction from view
