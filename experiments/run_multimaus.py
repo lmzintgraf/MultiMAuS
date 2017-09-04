@@ -14,7 +14,6 @@ def run_single():
     # get the parameters for the simulation
     params = parameters.get_default_parameters()
     params['init_satisfaction'] = 0.9
-    params['transaction_motivation'] /= 0.9
 
     # increase the probability of making another transaction
     new_stay_prob = [0.8, 0.5]

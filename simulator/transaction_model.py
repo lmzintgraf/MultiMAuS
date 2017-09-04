@@ -1,8 +1,8 @@
 from simulator.merchant import Merchant
-from mesa.time import RandomActivation
+from mesa.mesa.time import RandomActivation
 from simulator.log_collector import LogCollector
 from simulator import parameters
-from mesa import Model
+from mesa.mesa import Model
 from authenticators.simple_authenticators import NeverSecondAuthenticator
 from simulator.customers import GenuineCustomer, FraudulentCustomer
 from datetime import timedelta

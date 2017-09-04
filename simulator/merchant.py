@@ -1,4 +1,4 @@
-from mesa import Agent
+from mesa.mesa import Agent
 import numpy as np
 
 
