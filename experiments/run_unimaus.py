@@ -31,10 +31,5 @@ def run_single():
     result_handling.save_results(model)
 
 if __name__ == '__main__':
-    #import cProfile
-
-    #pr = cProfile.Profile()
-    #pr.enable()
+    
     run_single()
-    #pr.disable()
-    #pr.print_stats(sort='cumtime')
