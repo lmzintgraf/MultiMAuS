@@ -23,11 +23,12 @@ class BaseCustomer(AbstractCustomer):
         # initialise transaction probabilities per month/monthday/weekday/hour
         self.trans_prob_month, self.trans_prob_monthday, self.trans_prob_weekday, self.trans_prob_hour = self.initialise_transaction_probabilities()
 
-        # whether the current transaction was authorised
+        # whether the current transaction was cancelled by the customer
         self.curr_trans_cancelled = False
-        self.curr_trans_authorised = False
 
     def decide_making_transaction(self):
+        # reset that the current transaction was not cancelled
+        self.curr_trans_cancelled = False
         if self.stay:
             make_transaction = self.get_transaction_prob() > self.random_state.uniform(0, 1)
         else:
@@ -37,9 +38,6 @@ class BaseCustomer(AbstractCustomer):
     def post_process_transaction(self):
         # decide whether to stay
         self.stay = self.stay_after_transaction()
-        # reset variables
-        self.curr_trans_cancelled = False
-        self.curr_trans_authorised = False
 
     def get_transaction_prob(self):
 
@@ -160,6 +158,9 @@ class GenuineCustomer(BaseCustomer):
         when the customer's card was subject to fraud
         :return:
         """
+        # reset authentication step count
+        self.curr_auth_step = 0
+
         # if the card was corrupted, the user is more likely to leave
         if self.card_corrupted:
             if self.params['stay_after_fraud'] < self.random_state.uniform(0, 1):
@@ -171,12 +172,7 @@ class GenuineCustomer(BaseCustomer):
         return super().decide_making_transaction()
 
     def post_process_transaction(self):
-
         self.update_satisfaction()
-
-        # reset authentication step count
-        self.curr_auth_step = 0
-
         super().post_process_transaction()
 
     def update_satisfaction(self):
@@ -184,16 +180,16 @@ class GenuineCustomer(BaseCustomer):
         Adjust the satisfaction of the user after a transaction was made.
         :return: 
         """
-        # if no authentication was done, the satisfaction goes up by 0.01
-        if self.curr_auth_step == 0:
-            self.satisfaction *= 1.01
+        # if the customer cancelled the transaction, the satisfaction goes down by 5%
+        if self.curr_trans_cancelled:
+            self.satisfaction *= 0.95
         else:
-            # if a second authentication was done, the satisfaction goes down by 1%
-            if self.curr_trans_authorised:
-                self.satisfaction *= 0.99
-            # if second authentication as asked but the customer cancelled the transaction, the satisfaction goes down by 10%
+            # if no authentication was done, the satisfaction goes up by 0.01
+            if self.curr_auth_step == 0:
+                self.satisfaction *= 1.01
+            # otherwise, it goes down by 1%
             else:
-                self.satisfaction *= 0.95
+                self.satisfaction *= 0.99
         self.satisfaction = min([1, self.satisfaction])
         self.satisfaction = max([0, self.satisfaction])
 
@@ -203,9 +199,8 @@ class GenuineCustomer(BaseCustomer):
         Returns the authentication quality.
         :return:
         """
-        curr_patience = 0.5 * (self.patience + self.curr_amount/self.curr_merchant.max_amount)
+        curr_patience = 0.8 * self.patience + 0.2 * self.curr_amount/self.curr_merchant.max_amount
         if curr_patience > self.random_state.uniform(0, 1):
-            self.curr_trans_cancelled = False
             auth_quality = 1
         else:
             # cancel the transaction
