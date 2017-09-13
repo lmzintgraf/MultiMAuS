@@ -28,7 +28,7 @@ See readme file in data folder for more information.
 
 ### SIMULATOR
 
-We use the agent modelling framework mesa ()
+We use the agent modelling framework mesa (https://github.com/projectmesa/mesa).
 
 ### FEATURE EXTRACTION
 
