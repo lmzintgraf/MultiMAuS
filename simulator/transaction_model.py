@@ -18,7 +18,7 @@ class TransactionModel(Model):
             model_parameters = parameters.get_default_parameters()
         self.parameters = model_parameters
 
-        # calculate the intrinsic transaction motivation per customer (which is proportional to number of customers/fraudsters)
+        # calculate the intrinsic transaction motivation per customer (proportional to number of customers/fraudsters)
         # we keep this separate because then we can play around with the number of customers/fraudsters,
         # but individual behaviour doesn't change
         self.parameters['transaction_motivation'] = np.array([1./self.parameters['num_customers'], 1./self.parameters['num_fraudsters']])
@@ -62,12 +62,12 @@ class TransactionModel(Model):
                              "Target": lambda c: c.fraudster,
                              "AuthSteps": lambda c: c.curr_auth_step,
                              "TransactionCancelled": lambda c: c.curr_trans_cancelled,
-                             "TransactionSuccessful": lambda c: c.curr_trans_success},
+                             "TransactionSuccessful": lambda c: not c.curr_trans_cancelled},
             model_reporters={
                 "Satisfaction": lambda m: sum((customer.satisfaction for customer in m.customers)) / len(m.customers)})
 
     def inform_attacked_customers(self):
-        fraud_card_ids = [f.card_id for f in self.fraudsters if f.active and f.curr_trans_authorised]
+        fraud_card_ids = [f.card_id for f in self.fraudsters if f.active and f.curr_trans_success]
         for card_id in fraud_card_ids:
             customer = next((c for c in self.customers if c.card_id == card_id), None)
             if customer is not None:
@@ -133,7 +133,8 @@ class TransactionModel(Model):
         num_new_customers = num_transactions * (1 - self.parameters['stay_prob'][fraudster])
 
         # weigh by mean satisfaction
-        num_new_customers *= self.get_social_satisfaction()
+        social_satisfaction = np.mean([c.satisfaction for c in self.customers])
+        num_new_customers *= social_satisfaction
 
         if num_new_customers > 1:
             num_new_customers += self.random_state.normal(0, 1)
@@ -147,13 +148,6 @@ class TransactionModel(Model):
 
         # add as many customers as we think that left
         self.customers.extend([GenuineCustomer(self) for _ in range(num_new_customers)])
-
-    def get_social_satisfaction(self):
-        """
-        Return the satisfaction of a customer's social network
-        :return: 
-        """
-        return np.mean([c.satisfaction for c in self.customers])
 
     def immigration_fraudsters(self):
 
