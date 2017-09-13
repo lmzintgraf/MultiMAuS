@@ -105,7 +105,7 @@ class TransactionModel(Model):
             self.terminated = True
 
     def process_transaction(self, customer):
-        return self.authenticator.authorise_transaction(customer)
+        self.authenticator.authorise_transaction(customer)
 
     def customer_migration(self):
 
