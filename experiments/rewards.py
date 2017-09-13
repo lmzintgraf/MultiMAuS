@@ -30,7 +30,7 @@ def monetary_reward_per_timestep(agent_vars):
     return rewards
 
 
-def money_lost_per_timestep(agent_vars):
+def money_made_per_timestep(agent_vars):
     num_steps = 366*24
     rewards = np.zeros(num_steps)
     for step in range(num_steps):
@@ -49,7 +49,7 @@ def money_lost_per_timestep(agent_vars):
     return rewards
 
 
-def money_made_per_timestep(agent_vars):
+def money_lost_per_timestep(agent_vars):
     num_steps = 366*24
     rewards = np.zeros(num_steps)
     for step in range(num_steps):
