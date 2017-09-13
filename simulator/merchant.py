@@ -14,9 +14,8 @@ class Merchant(Agent):
         self.distr_params = self.model.parameters['merchant_amount_distr'][:, self.unique_id, :]
 
         # save the min/max amount in a seperate field in case customers want to choose the amount themselves
-        num_bins = int(len(self.distr_params[0, :])/2)
-        self.min_amount = np.min(self.distr_params[:, :num_bins])
-        self.max_amount = np.max(self.distr_params[:, :num_bins])
+        self.min_amount = np.min(self.distr_params)
+        self.max_amount = np.max(self.distr_params)
 
     def get_amount(self, customer):
         """
