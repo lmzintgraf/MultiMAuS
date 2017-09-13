@@ -18,7 +18,8 @@ from simulator.transaction_model import TransactionModel
 
 class OnlineUnimaus:
 
-    def __init__(self, end_date=datetime(2999, 12, 31), params=None, random_schedule=False):
+    def __init__(self, seed=123, stay_prob_genuine=0.9, stay_prob_fraud=0.99,
+                 end_date=datetime(2999, 12, 31), params=None, random_schedule=False):
         """
         Creates an object that can be used to run the simulator online / interactively. This means
         that we can have it generate a bit of data, do something with the data, generate a bit more
@@ -40,6 +41,15 @@ class OnlineUnimaus:
 
         if end_date is not None:
             params['end_date'] = end_date
+
+        if stay_prob_genuine is not None:
+            params['stay_prob'][0] = stay_prob_genuine
+
+        if stay_prob_fraud is not None:
+            params['stay_prob'][1] = stay_prob_fraud
+
+        if seed is not None:
+            params['seed'] = seed
 
         if random_schedule:
             self.model = TransactionModel(params)
@@ -170,6 +180,15 @@ class OnlineUnimaus:
             output += str(key) + ":" + str(self.params[key]) + "-"
 
         return output
+
+    def get_seed_str(self):
+        return str(self.params['seed'])
+
+    def get_stay_prob_genuine_str(self):
+        return str(self.params['stay_prob'][0])
+
+    def get_stay_prob_fraud_str(self):
+        return str(self.params['stay_prob'][1])
 
     def step_simulator(self, num_steps=1):
         """

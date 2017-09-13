@@ -35,6 +35,6 @@ class Merchant(Agent):
         # get a random input to the sigmoid
         bin_idx = self.random_state.choice(range(len(bin_heights)), p=bin_heights)
 
-        amount = self.random_state.uniform(bin_edges[bin_idx], bin_edges[bin_idx+1], 1)[0]
+        amount = self.random_state.uniform(bin_edges[bin_idx], bin_edges[bin_idx+1])
 
         return amount

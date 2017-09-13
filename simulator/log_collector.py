@@ -17,10 +17,7 @@ class LogCollector(DataCollector):
 
         if self.agent_reporters:
             for var, reporter in self.agent_reporters.items():
-                agent_records = []
-                for agent in model.schedule.agents:
-                    if agent.active:  # this is the line we changed
-                        agent_records.append((agent.unique_id, reporter(agent)))
+                agent_records = [(agent.unique_id, reporter(agent)) for agent in model.schedule.agents if agent.active]
                 self.agent_vars[var].append(agent_records)
 
     def get_agent_vars_dataframe(self):

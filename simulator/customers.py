@@ -29,7 +29,7 @@ class BaseCustomer(AbstractCustomer):
 
     def decide_making_transaction(self):
         if self.stay:
-            make_transaction = self.get_transaction_prob() > self.random_state.uniform(0, 1, 1)[0]
+            make_transaction = self.get_transaction_prob() > self.random_state.uniform(0, 1)
         else:
             make_transaction = False
         return make_transaction
@@ -59,9 +59,8 @@ class BaseCustomer(AbstractCustomer):
 
     def get_local_datetime(self):
         # convert global to local date (first add global timezone info, then convert to local)
-        local_datetime = self.model.curr_global_date.replace(tzinfo=timezone('US/Pacific'))
+        local_datetime = self.model.curr_global_date
         local_datetime = local_datetime.astimezone(timezone(country_timezones(self.country)[0]))
-        local_datetime = local_datetime.replace(tzinfo=None)
         return local_datetime
 
     def get_curr_merchant(self):
@@ -72,13 +71,13 @@ class BaseCustomer(AbstractCustomer):
         merchant_prob = self.params['merchant_per_currency'][self.fraudster]
         merchant_prob = merchant_prob.loc[self.currency]
         merchant_ID = self.random_state.choice(merchant_prob.index.values, p=merchant_prob.values.flatten())
-        return [m for m in self.model.merchants if m.unique_id == merchant_ID][0]
+        return next(m for m in self.model.merchants if m.unique_id == merchant_ID)
 
     def get_curr_amount(self):
         return self.curr_merchant.get_amount(self)
 
     def stay_after_transaction(self):
-        return self.get_staying_prob() > self.random_state.uniform(0, 1, 1)[0]
+        return self.get_staying_prob() > self.random_state.uniform(0, 1)
 
     def get_staying_prob(self):
         return self.params['stay_prob'][self.fraudster]
@@ -98,29 +97,29 @@ class BaseCustomer(AbstractCustomer):
     def initialise_transaction_probabilities(self):
         # transaction probability per month
         trans_prob_month = self.params['frac_month'][:, self.fraudster]
-        trans_prob_month = self.random_state.multivariate_normal(trans_prob_month, np.eye(12) * self.noise_level / 1200, 1)[0]
+        trans_prob_month = self.random_state.multivariate_normal(trans_prob_month, np.eye(12) * self.noise_level / 1200)
         trans_prob_month[trans_prob_month < 0] = 0
 
         # transaction probability per day in month
         trans_prob_monthday = self.params['frac_monthday'][:, self.fraudster]
-        trans_prob_monthday = self.random_state.multivariate_normal(trans_prob_monthday, np.eye(31) * self.noise_level / 305, 1)[0]
+        trans_prob_monthday = self.random_state.multivariate_normal(trans_prob_monthday, np.eye(31) * self.noise_level / 305)
         trans_prob_monthday[trans_prob_monthday < 0] = 0
 
         # transaction probability per weekday (we assume this differs per individual)
         trans_prob_weekday = self.params['frac_weekday'][:, self.fraudster]
-        trans_prob_weekday = self.random_state.multivariate_normal(trans_prob_weekday, np.eye(7) * self.noise_level / 70, 1)[0]
+        trans_prob_weekday = self.random_state.multivariate_normal(trans_prob_weekday, np.eye(7) * self.noise_level / 70)
         trans_prob_weekday[trans_prob_weekday < 0] = 0
 
         # transaction probability per hour (we assume this differs per individual)
         trans_prob_hour = self.params['frac_hour'][:, self.fraudster]
-        trans_prob_hour = self.random_state.multivariate_normal(trans_prob_hour, np.eye(24) * self.noise_level / 240, 1)[0]
+        trans_prob_hour = self.random_state.multivariate_normal(trans_prob_hour, np.eye(24) * self.noise_level / 240)
         trans_prob_hour[trans_prob_hour < 0] = 0
 
         return trans_prob_month, trans_prob_monthday, trans_prob_weekday, trans_prob_hour
 
     def initialise_avg_trans_per_hour(self):
         trans_per_year = self.params['trans_per_year'][self.fraudster]
-        rand_addition = self.random_state.normal(0, self.noise_level * trans_per_year, 1)[0]
+        rand_addition = self.random_state.normal(0, self.noise_level * trans_per_year)
         if trans_per_year + rand_addition > 0:
             trans_per_year += rand_addition
         avg_trans_per_hour = trans_per_year / 366. / 24.
@@ -140,18 +139,14 @@ class GenuineCustomer(BaseCustomer):
         self.curr_auth_step = 0
 
         # initialise the customer's patience (optimistically)
-        self.patience = self.random_state.beta(10, 2, 1)[0]
+        self.patience = self.random_state.beta(10, 2)
 
         # instantiate the customer's satisfaction
         self.satisfaction = satisfaction
 
     def stay_after_transaction(self):
         stay_prob = self.satisfaction * self.params['stay_prob'][self.fraudster]
-        leave = (1-stay_prob) > self.random_state.uniform(0, 1, 1)[0]
-        if leave:
-            return False
-        else:
-            return True
+        return (1-stay_prob) <= self.random_state.uniform(0, 1)
 
     def card_got_corrupted(self):
         self.card_corrupted = True
@@ -165,15 +160,15 @@ class GenuineCustomer(BaseCustomer):
         when the customer's card was subject to fraud
         :return:
         """
-        do_trans = super().decide_making_transaction()
-
         # if the card was corrupted, the user is more likely to leave
         if self.card_corrupted:
-            if self.params['stay_after_fraud'] < self.random_state.uniform(0, 1, 1)[0]:
-                do_trans = False
+            if self.params['stay_after_fraud'] < self.random_state.uniform(0, 1):
                 self.stay = False
 
-        return do_trans
+                # can skip the entire super().decide_making_transaction() computation
+                return False
+
+        return super().decide_making_transaction()
 
     def post_process_transaction(self):
 
@@ -199,8 +194,8 @@ class GenuineCustomer(BaseCustomer):
             # if second authentication as asked but the customer cancelled the transaction, the satisfaction goes down by 10%
             else:
                 self.satisfaction *= 0.95
-        self.satisfaction = np.min([1, self.satisfaction])
-        self.satisfaction = np.max([0, self.satisfaction])
+        self.satisfaction = min([1, self.satisfaction])
+        self.satisfaction = max([0, self.satisfaction])
 
     def give_authentication(self):
         """
@@ -209,7 +204,7 @@ class GenuineCustomer(BaseCustomer):
         :return:
         """
         curr_patience = 0.5 * (self.patience + self.curr_amount/self.curr_merchant.max_amount)
-        if curr_patience > self.random_state.uniform(0, 1, 1)[0]:
+        if curr_patience > self.random_state.uniform(0, 1):
             self.curr_trans_cancelled = False
             auth_quality = 1
         else:
@@ -232,17 +227,17 @@ class FraudulentCustomer(BaseCustomer):
         or a completely new one (i.e., from customers unnknown to the processing platform)
         :return: 
         """
-        if self.params['fraud_cards_in_genuine'] > self.random_state.uniform(0, 1, 1)[0]:
+        if self.params['fraud_cards_in_genuine'] > self.random_state.uniform(0, 1):
             # the fraudster picks a customer...
             # ... (1) from a familiar country
             fraudster_countries = self.params['country_frac'].index[self.params['country_frac']['fraud'] !=0].values
             # ... (2) from a familiar currency
             fraudster_currencies = self.params['currency_per_country'][1].index.get_level_values(1).unique()
             # ... (3) that has already made a transaction
-            customers_active_ids = [c.unique_id for c in self.model.customers if c.card_id is not None]
+            customers_with_active_cards = [c for c in self.model.customers if c.card_id is not None]
             # now pick the fraud target (if there are no targets get own credit card)
             try:
-                customer = self.random_state.choice([c for c in self.model.customers if (c.country in fraudster_countries) and (c.currency in fraudster_currencies) and (c.unique_id in customers_active_ids)])
+                customer = self.random_state.choice([c for c in customers_with_active_cards if (c.country in fraudster_countries) and (c.currency in fraudster_currencies)])
                 # get the information from the target
                 card = customer.card_id
                 self.country = customer.country

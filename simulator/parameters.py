@@ -1,4 +1,5 @@
 from datetime import datetime
+from pytz import timezone
 from os.path import join
 import numpy as np
 from data import utils_data
@@ -15,8 +16,8 @@ def get_default_parameters():
         'seed': 666,
 
         # start and end date of simulation
-        'start_date': datetime(2016, 1, 1),
-        'end_date': datetime(2016, 12, 31),
+        'start_date': datetime(2016, 1, 1).replace(tzinfo=timezone('US/Pacific')),
+        'end_date': datetime(2016, 12, 31).replace(tzinfo=timezone('US/Pacific')),
 
         # how much noise we use in the simulation (use more for fraudulent than genuine customers)
         'noise_level': 0.1,
