@@ -52,7 +52,7 @@ def save_results(model):
     # retrieve parameters for current experiment
     parameters = model.parameters
     # add the name of the authenticator to the parameters
-    parameters['authenticator'] = model.authenticator.name
+    parameters['authenticator'] = model.authenticator.__class__.__name__
     # save the parameters
     pickle.dump(parameters, open(get_params_path(result_idx), 'wb'), pickle.HIGHEST_PROTOCOL)
 
