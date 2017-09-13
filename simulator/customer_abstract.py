@@ -16,7 +16,7 @@ class AbstractCustomer(Agent,  metaclass=ABCMeta):
         super().__init__(unique_id, transaction_model)
 
         # copy parameters from model
-        self.params = copy.deepcopy(self.model.parameters)
+        self.params = self.model.parameters
 
         # internal random state (different for every customer0
         self.random_state = np.random.RandomState(self.model.random_state.randint(0, np.iinfo(np.int32).max))

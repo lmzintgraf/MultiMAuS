@@ -52,8 +52,8 @@ class TransactionModel(Model):
     @staticmethod
     def initialise_log_collector():
         return LogCollector(
-            agent_reporters={"Global_Date": lambda c: c.model.curr_global_date,
-                             "Local_Date": lambda c: c.local_datetime,
+            agent_reporters={"Global_Date": lambda c: c.model.curr_global_date.replace(tzinfo=None),
+                             "Local_Date": lambda c: c.local_datetime.replace(tzinfo=None),
                              "CardID": lambda c: c.card_id,
                              "MerchantID": lambda c: c.curr_merchant.unique_id,
                              "Amount": lambda c: c.curr_amount,
@@ -64,12 +64,13 @@ class TransactionModel(Model):
                              "TransactionCancelled": lambda c: c.curr_trans_cancelled,
                              "TransactionSuccessful": lambda c: c.curr_trans_success},
             model_reporters={
-                "Satisfaction": lambda m: np.sum([m.customers[i].satisfaction for i in range(len(m.customers))]) / len(m.customers)})
+                "Satisfaction": lambda m: sum((customer.satisfaction for customer in m.customers)) / len(m.customers)})
 
     def inform_attacked_customers(self):
         fraud_card_ids = [f.card_id for f in self.fraudsters if f.active and f.curr_trans_authorised]
-        for customer in self.customers:
-            if customer.card_id in fraud_card_ids:
+        for card_id in fraud_card_ids:
+            customer = next((c for c in self.customers if c.card_id == card_id), None)
+            if customer is not None:
                 customer.card_got_corrupted()
 
     def step(self):
@@ -135,11 +136,11 @@ class TransactionModel(Model):
         num_new_customers *= self.get_social_satisfaction()
 
         if num_new_customers > 1:
-            num_new_customers += self.random_state.normal(0, 1, 1)[0]
-            num_new_customers = int(np.round(num_new_customers, 0))
-            num_new_customers = np.max([0, num_new_customers])
+            num_new_customers += self.random_state.normal(0, 1)
+            num_new_customers = int(round(num_new_customers, 0))
+            num_new_customers = max([0, num_new_customers])
         else:
-            if num_new_customers > self.random_state.uniform(0, 1, 1)[0]:
+            if num_new_customers > self.random_state.uniform(0, 1):
                 num_new_customers = 1
             else:
                 num_new_customers = 0
@@ -168,11 +169,11 @@ class TransactionModel(Model):
         num_fraudsters_left = num_transactions * (1 - self.parameters['stay_prob'][fraudster])
 
         if num_fraudsters_left > 1:
-            num_fraudsters_left += self.random_state.normal(0, 1, 1)[0]
-            num_fraudsters_left = int(np.round(num_fraudsters_left, 0))
-            num_fraudsters_left = np.max([0, num_fraudsters_left])
+            num_fraudsters_left += self.random_state.normal(0, 1)
+            num_fraudsters_left = int(round(num_fraudsters_left, 0))
+            num_fraudsters_left = max([0, num_fraudsters_left])
         else:
-            if num_fraudsters_left > self.random_state.uniform(0, 1, 1)[0]:
+            if num_fraudsters_left > self.random_state.uniform(0, 1):
                 num_fraudsters_left = 1
             else:
                 num_fraudsters_left = 0
