@@ -19,6 +19,7 @@ Implementation is partially based on https://github.com/kb211/Fraud_Detection201
 from datetime import datetime
 from datetime import timedelta
 from scipy.special import i0
+import math
 import numpy as np
 import pandas as pd
 
@@ -32,19 +33,15 @@ class AggregateFeatures:
 
         :param training_data:
         """
-        #print(str(datetime.now()), ": Init Aggregate Features...")
-
         self.country_all_dict, self.country_fraud_dict = self.compute_fraud_ratio_dicts(training_data, "Country")
-        #print(str(datetime.now()), ": Finished computing country dicts...")
+        self.currency_all_dict, self.currency_fraud_dict = self.compute_fraud_ratio_dicts(training_data, "Currency")
         self.first_order_times_dict = {}
         self.compute_first_order_times_dict(training_data)
-        #print(str(datetime.now()), ": Finished computing First Order Times dict...")
 
         # compute and store a mapping from card IDs to lists of transactions
         # this is a bit expensive memory-wise, but will very significantly speed up feature construction
         self.transactions_by_card_ids = {}
         self.add_transactions_by_card_ids(training_data)
-        #print(str(datetime.now()), ": Finished computing Transactions by Card IDs dict from training data...")
 
     def update_unlabeled(self, new_data):
         """
@@ -93,10 +90,22 @@ class AggregateFeatures:
         (based on my intuition at least, no fancy citations for this :( )
         '''
         data["CountryFraudRatio"] = data.apply(
-            lambda row: self.get_country_fraud_ratio(row=row), axis=1)
+            lambda row: self.get_country_fraud_ratio(row=row), axis=1
+        )
         data["CountrySufficientSampleSize"] = data.apply(
-            lambda row: self.is_country_sample_size_sufficient(row=row), axis=1)
-        #print(str(datetime.now()), ": Finished adding country-related features...")
+            lambda row: self.is_country_sample_size_sufficient(row=row), axis=1
+        )
+
+        '''
+        The following features are not described in any papers specifically
+        '''
+        data["CurrencyFraudRatio"] = data.apply(
+            lambda row: self.get_currency_fraud_ratio(row=row), axis=1
+        )
+        data["CurrencySufficientSampleSize"] = data.apply(
+            lambda row: self.is_currency_sample_size_sufficient(row=row), axis=1
+        )
+        data = self.add_date_features(data)
 
         '''
         The following feature appears in Table 1 in [1], but has no explanation otherwise in the paper. Intuitively,
@@ -105,14 +114,26 @@ class AggregateFeatures:
         '''
         data["TimeSinceFirstOrder"] = data.apply(
             lambda row: self.get_time_since_first_order(row=row), axis=1)
-        #print(str(datetime.now()), ": Finished adding Time Since First Order feature...")
 
         data = self.add_historical_features(data)
-        #print(str(datetime.now()), ": Finished adding historical features")
 
         data = self.add_time_of_day_features(data)
-        #print(str(datetime.now()), ": Finished adding time-of-day features")
 
+        return data
+
+    def add_date_features(self, data):
+        """
+        Adds a few general features computed from the Local_Date (sin and cos for hour in day and month in year)
+
+        :param data:
+            Data to add features to
+        :return:
+            Data with extra features (added in-place)
+        """
+        data["SinHour"] = data.apply(lambda row: self.compute_sin_hour(row=row), axis=1)
+        data["CosHour"] = data.apply(lambda row: self.compute_cos_hour(row=row), axis=1)
+        data["SinMonth"] = data.apply(lambda row: self.compute_sin_month(row=row), axis=1)
+        data["CosMonth"] = data.apply(lambda row: self.compute_cos_month(row=row), axis=1)
         return data
 
     def add_historical_features(self, data,
@@ -271,11 +292,11 @@ class AggregateFeatures:
         extract_transactions_before = self.extract_transactions_before
         extract_transactions_after = self.extract_transactions_after
         time_to_circle = self.time_to_circle
-        sin = np.sin
-        cos = np.cos
+        sin = math.sin
+        cos = math.cos
         arctan2 = np.arctan2
         estimate_von_mises_kappa = self.estimate_von_mises_kappa
-        exp = np.exp
+        exp = math.exp
 
         for row in data.itertuples():
             # date of the row we're adding features for
@@ -366,6 +387,26 @@ class AggregateFeatures:
                 transactions_by_card_ids[card_id] = transactions_by_card_ids[card_id]\
                     .append(data.loc[data["CardID"] == card_id], ignore_index=True)
 
+    def compute_cos_hour(self, row):
+        date = row.Local_Date
+        hour = date.hour + float(date.minute) / 60.0
+        return math.cos(hour * math.pi / 12.0)
+
+    def compute_cos_month(self, row):
+        date = row.Local_Date
+        month = date.month
+        return math.cos(month * math.pi / 6.0)
+
+    def compute_sin_hour(self, row):
+        date = row.Local_Date
+        hour = date.hour + float(date.minute) / 60.0
+        return math.sin(hour * math.pi / 12.0)
+
+    def compute_sin_month(self, row):
+        date = row.Local_Date
+        month = date.month
+        return math.sin(month * math.pi / 6.0)
+
     def compute_first_order_times_dict(self, training_data):
         """
         Computes a dictionary, mapping from Card IDs to timestamps (dates). For every unique card ID
@@ -433,7 +474,7 @@ class AggregateFeatures:
         denominator = (((N_inv * phi) ** 2) + ((N_inv * psi) ** 2))
         denominator = min(max(0.0001, denominator), 0.9999)
 
-        kappa = 1. / np.sqrt(np.log(1. / denominator))
+        kappa = 1. / math.sqrt(math.log(1. / denominator))
 
         # if we have low N, we want to bias towards low kappa (prior assumption of more uniform distribution)
         if N < 5:
@@ -568,6 +609,26 @@ class AggregateFeatures:
         else:
             return float(self.country_fraud_dict[country]) / float(self.country_all_dict[country])
 
+    def get_currency_fraud_ratio(self, currency="", row=None):
+        """
+        Computes the ratio of fraudulent transactions for a currency
+
+        :param currency:
+            Currency (string) to get the fraud ratio for
+        :param row:
+            If not None, Currency will be extracted from this row
+        :return:
+            Ratio of transactions corresponding to given country which are fraudulent
+        """
+        if row is not None:
+            currency = row["Country"]
+
+        if currency not in self.currency_all_dict:
+            # TODO may be interesting to try average of all currencies? Or max, to motivate exploration?
+            return 0.0
+        else:
+            return float(self.currency_fraud_dict[currency]) / float(self.currency_all_dict[currency])
+
     def get_time_since_first_order(self, row):
         """
         Computes the time since the first order (= transaction) with the same Card ID
@@ -610,6 +671,29 @@ class AggregateFeatures:
             else:
                 return 0
 
+    def is_currency_sample_size_sufficient(self, currency="", row=None):
+        """
+        Returns 1 if and only if the number of observations for a given currency >= 30
+        (returns 0 otherwise)
+
+        :param currency:
+            Currency (string) to check the sample size for
+        :param row:
+            If not None, currency will be extracted from this row
+        :return:
+            1 if and only if the number of observations >= 30, 0 otherwise
+        """
+        if row is not None:
+            currency = row["Currency"]
+
+        if currency not in self.currency_all_dict:
+            return 0
+        else:
+            if self.currency_all_dict[currency] >= 30:
+                return 1
+            else:
+                return 0
+
     def time_to_circle(self, time):
         """
         Helper function which a point in time (date) to a point on a circle (a 24-hour circle)
@@ -624,4 +708,4 @@ class AggregateFeatures:
         hour_float = \
             time.hour + time.minute / 60.0 + time.second / 3600.0 + time.microsecond / (3600.0 * 1000000.0)
 
-        return hour_float / 12 * np.pi - np.pi
+        return hour_float / 12 * math.pi - math.pi
