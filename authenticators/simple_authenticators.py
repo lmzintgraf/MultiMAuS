@@ -26,10 +26,13 @@ class HeuristicAuthenticator(AbstractAuthenticator):
         if customer.curr_amount > self.thresh:
             customer.give_authentication()
 
+    def take_action(self, customer):
+        if customer.curr_amount > self.thresh:
+            return 1
+
 
 class RandomAuthenticator(AbstractAuthenticator):
     def authorise_transaction(self, customer):
-
         # ask for second authentication in 50% of the cases
         if customer.model.random_state.uniform(0, 1, 1)[0] < 0.5:
             customer.give_authentication()
