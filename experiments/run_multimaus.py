@@ -47,22 +47,22 @@ def run_single():
         monetary_rewards = rewards.monetary_reward_per_timestep(agent_vars)
         true_satisfactions = rewards.satisfaction_per_timestep(model_vars)
 
-        plt.subplot(1, 4, 1)
+        # plt.subplot(1, 4, 1)
         plt.ylabel('revenue (total)')
         plt.plot(range(len(monetary_rewards)), np.cumsum(monetary_rewards), label=a)
         plt.legend()
 
-        plt.subplot(1, 4, 2)
-        plt.ylabel('cumulative satisfaction')
-        plt.plot(range(len(true_satisfactions)), np.cumsum(true_satisfactions), label=a)
-
-        plt.subplot(1, 4, 3)
-        plt.ylabel('revenue (money lost by fraud)')
-        plt.plot(range(len(true_satisfactions)), np.cumsum(true_satisfactions), label=a)
-
-        plt.subplot(1, 4, 4)
-        plt.ylabel('revenue (money gained by genuine transactions)')
-        plt.plot(range(len(true_satisfactions)), np.cumsum(true_satisfactions), label=a)
+        # plt.subplot(1, 4, 2)
+        # plt.ylabel('cumulative satisfaction')
+        # plt.plot(range(len(true_satisfactions)), np.cumsum(true_satisfactions), label=a)
+        #
+        # plt.subplot(1, 4, 3)
+        # plt.ylabel('revenue (money lost by fraud)')
+        # plt.plot(range(len(true_satisfactions)), np.cumsum(true_satisfactions), label=a)
+        #
+        # plt.subplot(1, 4, 4)
+        # plt.ylabel('revenue (money gained by genuine transactions)')
+        # plt.plot(range(len(true_satisfactions)), np.cumsum(true_satisfactions), label=a)
 
     plt.tight_layout()
     plt.show()
