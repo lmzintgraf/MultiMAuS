@@ -1,37 +1,41 @@
 """
 We train a simple Q-Learning algorithm for fraud detection.
 """
-from environment import environment
 import state_space
 import action_space
 import numpy as np
 
+
 # Q-TABLE
-
-
-
 class QLearnAgent:
-    def __init__(self):
+    def __init__(self, init='zero'):
+
         # learning rate
-        self.lr = 0.1
+        self.lr = 0.01
         # discount factor
-        self.discount = 1
+        self.discount = 0.1
         # epsilon for eps-greedy policy
         self.epsilon = 0.1
-        # initialise a q-table based on the state and action space
-        self.q_table = np.zeros((state_space.SIZE, action_space.SIZE))
 
-    def authorise_transaction(self, customer):
-        state = state_space.get_state(customer)
+        # initialise a q-table based on the state and action space
+        if init == 'zero':
+            self.q_table = np.zeros((state_space.SIZE, action_space.SIZE))
+        elif init == 'always second':
+            self.q_table = np.zeros((state_space.SIZE, action_space.SIZE))
+            self.q_table[:, 1] = 1
+        elif init == 'random':
+            self.q_table = np.random.uniform(0, 1, (state_space.SIZE, action_space.SIZE))
+        else:
+            raise NotImplementedError('Q-table initialisation', init, 'unknown.')
+
+    def take_action(self, state):
         action_vals = self.q_table[state]
         if np.random.uniform(0, 1) > self.epsilon:
             action = np.argmax(action_vals)
         else:
             action = np.random.choice(action_space.ACTIONS)
 
-        reward, next_state = environment.take_action(action)
-
-        self.update(state, action, reward, next_state)
+        return action
 
     def update(self, state, action, reward, next_state):
 
