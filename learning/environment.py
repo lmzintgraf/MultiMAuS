@@ -18,7 +18,7 @@ class Environment:
         new_state = state_space.get_state(customer)
 
         # call the step function of the model
-        action = self.agent.take_action(new_state)
+        action = self.agent.take_action(new_state, customer)
 
         # ask the user for authentication
         auth_result = 1
