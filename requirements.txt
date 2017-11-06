@@ -4,4 +4,3 @@ pandas
 datetime
 mesa
 currencyconverter
-pickle
