@@ -1,7 +1,6 @@
-from mesa.mesa import Agent
+from mesa import Agent
 from abc import ABCMeta, abstractmethod
 import numpy as np
-import copy
 
 
 class AbstractCustomer(Agent,  metaclass=ABCMeta):

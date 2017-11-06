@@ -1,4 +1,4 @@
-from mesa.mesa.datacollection import DataCollector
+from mesa.datacollection import DataCollector
 from collections import defaultdict
 import pandas as pd
 
